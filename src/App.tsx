@@ -155,6 +155,7 @@ function App() {
         metadata,
         weather,
       });
+      window.scrollTo(0, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file');
     } finally {
@@ -201,11 +202,13 @@ function App() {
       metadata,
       weather,
     });
+    window.scrollTo(0, 0);
   };
 
   const handleReset = () => {
     setData(null);
     setError(null);
+    window.scrollTo(0, 0);
   };
 
   return (

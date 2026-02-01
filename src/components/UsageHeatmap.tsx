@@ -69,22 +69,21 @@ export function UsageHeatmap({ hourlyAverages }: UsageHeatmapProps) {
               </div>
             </div>
           ))}
+        </div>
+      </div>
 
-          <div className="flex items-center justify-end gap-2 mt-3 text-xs text-stone-400 dark:text-stone-500">
-            <span>Less</span>
-            <div className="flex gap-px">
-              <div className="w-4 h-3 bg-teal-100 dark:bg-teal-900" />
-              <div className="w-4 h-3 bg-teal-300 dark:bg-teal-700" />
-              <div className="w-4 h-3 bg-yellow-300 dark:bg-yellow-600" />
-              <div className="w-4 h-3 bg-orange-400 dark:bg-orange-500" />
-              <div className="w-4 h-3 bg-red-500 dark:bg-red-600" />
-            </div>
-            <span>More</span>
+      <div className="flex items-center justify-between mt-3 text-xs text-stone-400 dark:text-stone-500">
+        <p>Peak TOU hours: Mon–Fri 7–10am & 5–8pm</p>
+        <div className="flex items-center gap-2">
+          <span>Less</span>
+          <div className="flex gap-px">
+            <div className="w-4 h-3 bg-teal-100 dark:bg-teal-900" />
+            <div className="w-4 h-3 bg-teal-300 dark:bg-teal-700" />
+            <div className="w-4 h-3 bg-yellow-300 dark:bg-yellow-600" />
+            <div className="w-4 h-3 bg-orange-400 dark:bg-orange-500" />
+            <div className="w-4 h-3 bg-red-500 dark:bg-red-600" />
           </div>
-
-          <p className="mt-4 text-xs text-stone-500 dark:text-stone-400">
-            Peak TOU hours: Mon–Fri 7–10am & 5–8pm
-          </p>
+          <span>More</span>
         </div>
       </div>
     </div>
