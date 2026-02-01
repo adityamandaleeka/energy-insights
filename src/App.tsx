@@ -279,22 +279,37 @@ function App() {
             {/* Intro blurb */}
             <div className="mb-8 p-5 bg-gradient-to-br from-teal-50 to-sky-50 dark:from-teal-900/20 dark:to-sky-900/20 border border-teal-200 dark:border-teal-800 rounded-lg">
               <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100 mb-2">
-                Should you switch to Time-of-Use pricing?
+                What's driving your electric bill? Would TOU pricing save you money?
               </h2>
-              <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-                Puget Sound Energy is rolling out <strong>Time-of-Use (TOU)</strong> rate plans that charge different prices based on when you use electricity. 
-                Peak hours (weekday mornings and evenings) cost more, while off-peak hours cost less. 
-                TOU pricing can save you money if you shift usage to off-peak times, and helps reduce strain on the electrical grid when demand is highest.
-                This tool analyzes your actual usage patterns to show you how TOU would affect your bills.
+              <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-3">
+                Upload your Puget Sound Energy (PSE) usage data and see:
               </p>
+              <ul className="text-sm text-stone-600 dark:text-stone-400 space-y-1 mb-3 list-disc list-inside">
+                <li>How your costs compare across Flat, TOU, and TOU + Super Off-Peak plans</li>
+                <li>How weather affects your usage</li>
+                <li>When you use the most power (and when you could save)</li>
+                <li>Patterns and trends in your energy habits</li>
+              </ul>
+              <details className="text-sm">
+                <summary className="text-teal-700 dark:text-teal-400 cursor-pointer hover:underline">What is TOU pricing?</summary>
+                <p className="mt-2 text-stone-600 dark:text-stone-400 leading-relaxed">
+                  TOU plans charge different prices based on when you use electricity. Peak hours cost more, off-peak hours cost less. 
+                  If you can shift usage to off-peak times, TOU can lower your bills and help reduce strain on the grid when demand is highest.
+                  This tool analyzes your actual usage patterns to show you how TOU would affect your bills.
+                </p>
+              </details>
             </div>
 
             {/* Analyze data - primary */}
             <div className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200 dark:border-violet-800 rounded-lg mb-6">
               <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Analyze your data</h3>
-              <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Get personalized results with your actual PSE usage</p>
-              <p className="text-xs text-stone-500 dark:text-stone-500 mb-4">Your data stays on your device and is never sent to a server</p>
+              <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">Get personalized insights with your actual usage data. Currently only for Puget Sound Energy customers.</p>
               <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
+              <div className="flex flex-wrap gap-3 mt-4 text-xs text-stone-500 dark:text-stone-400">
+                <span className="flex items-center gap-1">✓ Runs locally in your browser</span>
+                <span className="flex items-center gap-1">✓ No account needed</span>
+                <span className="flex items-center gap-1">✓ No data leaves your device</span>
+              </div>
               {error && (
                 <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border-l-2 border-red-400 text-red-700 dark:text-red-400 text-sm rounded">
                   {error}
@@ -310,14 +325,14 @@ function App() {
                 className="p-4 text-left rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 transition-colors"
               >
                 <p className="font-medium text-sm text-stone-900 dark:text-stone-100">EV Owner, Works from Home</p>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Charges EV overnight, home during day</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Heat pump, charges EV overnight</p>
               </button>
               <button
                 onClick={() => handleDemo('family')}
                 className="p-4 text-left rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 transition-colors"
               >
                 <p className="font-medium text-sm text-stone-900 dark:text-stone-100">Family with School-Age Kids</p>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Morning rush, evening family time</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Electric baseboard heat, busy evenings</p>
               </button>
             </div>
             
@@ -327,7 +342,7 @@ function App() {
                 <li>Log in to pse.com</li>
                 <li>Go to My Usage</li>
                 <li>Scroll down to "Download your data"</li>
-                <li>Choose your date range</li>
+                <li>Choose your date range (the more data, the better the insights)</li>
                 <li>Select CSV format and download</li>
               </ol>
               <p className="mt-4 text-xs text-stone-400 dark:text-stone-500">
@@ -436,9 +451,14 @@ function App() {
           </div>
         )}
 
-        <footer className="mt-16 pt-6 border-t border-stone-200 dark:border-stone-800 text-xs text-stone-400 dark:text-stone-500 space-y-1">
-          <p>Rates from PSE Electric Summary Sheet dated {RATE_EFFECTIVE_DATE}. Actual bills may include additional fees and taxes.</p>
-          <p>This tool is not affiliated with, endorsed by, or connected to Puget Sound Energy in any way.</p>
+        <footer className="mt-16 pt-6 border-t border-stone-200 dark:border-stone-800 text-xs text-stone-400 dark:text-stone-500 space-y-3">
+          <p className="text-stone-500 dark:text-stone-400">
+            No ads, no tracking, runs locally. If this saved you money, consider donating to a charity you like. 💚
+          </p>
+          <div className="pt-2 border-t border-stone-100 dark:border-stone-800 space-y-1">
+            <p>Rates from PSE Electric Summary Sheet dated {RATE_EFFECTIVE_DATE}. Actual bills may include additional fees and taxes.</p>
+            <p>This tool is not affiliated with, endorsed by, or connected to Puget Sound Energy in any way.</p>
+          </div>
         </footer>
       </div>
     </div>
