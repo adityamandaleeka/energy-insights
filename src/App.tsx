@@ -13,11 +13,13 @@ import {
   calculateTotalCosts,
 } from './utils/parser';
 import { RATE_EFFECTIVE_DATE } from './utils/rates';
+import { generateDemoData } from './utils/demoData';
 
 interface AnalysisData {
   records: UsageRecord[];
   monthlyStats: MonthlyStats[];
   hourlyAverages: HourlyAverage[];
+  isDemo?: boolean;
   flatCost: number;
   touCost: number;
   touSuperCost: number;
@@ -78,6 +80,30 @@ function App() {
     }
   };
 
+  const handleDemo = () => {
+    const records = generateDemoData();
+    const monthlyStats = calculateMonthlyStats(records);
+    const hourlyAverages = calculateHourlyAverages(records);
+    const { flatCost, touCost, touSuperCost } = calculateTotalCosts(records);
+
+    const totalUsage = records.reduce((sum, r) => sum + r.usage, 0);
+    const peakUsage = monthlyStats.reduce((sum, m) => sum + m.peakUsage, 0);
+    const offPeakUsage = monthlyStats.reduce((sum, m) => sum + m.offPeakUsage, 0);
+
+    setData({
+      records,
+      monthlyStats,
+      hourlyAverages,
+      flatCost,
+      touCost,
+      touSuperCost,
+      totalUsage,
+      peakUsage,
+      offPeakUsage,
+      isDemo: true,
+    });
+  };
+
   const handleReset = () => {
     setData(null);
     setError(null);
@@ -115,6 +141,18 @@ function App() {
         {!data ? (
           <div className="max-w-lg">
             <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
+            
+            <div className="mt-4 text-center">
+              <span className="text-sm text-stone-400 dark:text-stone-500">or</span>
+            </div>
+            
+            <button
+              onClick={handleDemo}
+              className="mt-4 w-full py-3 px-4 text-sm font-medium text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
+            >
+              Try with sample data
+            </button>
+            
             {error && (
               <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border-l-2 border-red-400 text-red-700 dark:text-red-400 text-sm">
                 {error}
@@ -137,6 +175,20 @@ function App() {
           </div>
         ) : (
           <div className="space-y-8">
+            {data.isDemo && (
+              <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded p-3 flex justify-between items-center">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Viewing sample data. Upload your own PSE data for accurate results.
+                </p>
+                <button
+                  onClick={handleReset}
+                  className="text-sm text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
+                >
+                  Upload your data
+                </button>
+              </div>
+            )}
+            
             <div className="flex justify-between items-center">
               <div className="flex gap-6 text-sm">
                 <div>
@@ -152,12 +204,14 @@ function App() {
                   <span className="ml-2 font-medium text-stone-900 dark:text-stone-100">{data.records.length.toLocaleString()}</span>
                 </div>
               </div>
-              <button
-                onClick={handleReset}
-                className="text-sm text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 underline underline-offset-2"
-              >
-                Upload different file
-              </button>
+              {!data.isDemo && (
+                <button
+                  onClick={handleReset}
+                  className="text-sm text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 underline underline-offset-2"
+                >
+                  Upload different file
+                </button>
+              )}
             </div>
 
             <CostComparison
