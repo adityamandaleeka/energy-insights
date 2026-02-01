@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 import type { UsageRecord, DailyUsage, MonthlyStats, HourlyAverage } from '../types';
-import { isPeakHour, getTouRate, calculateFlatRateCost } from './rates';
+import { isPeakHour, getTouRate, calculateFlatRateCost, BASIC_CHARGE } from './rates';
 
 interface RawRow {
   TYPE: string;
@@ -185,7 +185,7 @@ export function calculateTotalCosts(records: UsageRecord[]): { flatCost: number;
 
   for (const data of monthlyMap.values()) {
     flatCost += calculateFlatRateCost(data.usage);
-    touCost += data.touCost;
+    touCost += data.touCost + BASIC_CHARGE; // Add basic charge per month for TOU
   }
 
   return { flatCost, touCost };

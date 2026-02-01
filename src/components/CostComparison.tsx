@@ -77,13 +77,22 @@ export function CostComparison({ flatCost, touCost, monthCount }: CostComparison
       </div>
 
       <details className="mt-6 text-sm">
-        <summary className="text-stone-500 dark:text-stone-400 cursor-pointer hover:text-stone-700 dark:hover:text-stone-300">Rate details</summary>
-        <div className="mt-3 text-stone-600 dark:text-stone-400 space-y-1 pl-4 border-l-2 border-stone-200 dark:border-stone-700">
-          <p><strong>Peak hours:</strong> Mon–Fri 7–10am & 5–8pm</p>
-          <p><strong>Peak rate (Oct–Mar):</strong> $0.345/kWh</p>
-          <p><strong>Peak rate (Apr–Sep):</strong> $0.23/kWh</p>
-          <p><strong>Off-peak rate:</strong> $0.096/kWh</p>
-          <p><strong>Flat rate:</strong> $0.122/kWh (first 600 kWh/mo), $0.142/kWh after</p>
+        <summary className="text-stone-500 dark:text-stone-400 cursor-pointer hover:text-stone-700 dark:hover:text-stone-300">Rate details (as of Jan 2026)</summary>
+        <div className="mt-3 text-stone-600 dark:text-stone-400 space-y-2 pl-4 border-l-2 border-stone-200 dark:border-stone-700">
+          <p className="font-medium">Flat Rate (Schedule 7):</p>
+          <ul className="text-xs space-y-0.5 ml-2">
+            <li>Basic charge: $7.49/mo</li>
+            <li>Tier 1: ~$0.185/kWh (first 600 kWh)</li>
+            <li>Tier 2: ~$0.205/kWh (over 600 kWh)</li>
+          </ul>
+          <p className="font-medium mt-3">Time-of-Use (Schedule 307):</p>
+          <ul className="text-xs space-y-0.5 ml-2">
+            <li>Basic charge: $7.49/mo</li>
+            <li>Peak hours: Mon–Fri 7–10am & 5–8pm</li>
+            <li>Winter peak (Oct–Mar): $0.538/kWh</li>
+            <li>Summer peak (Apr–Sep): $0.341/kWh</li>
+            <li>Off-peak: $0.114/kWh</li>
+          </ul>
         </div>
       </details>
     </div>
