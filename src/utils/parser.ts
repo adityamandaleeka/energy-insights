@@ -162,19 +162,31 @@ export function calculateHourlyAverages(records: UsageRecord[]): HourlyAverage[]
 }
 
 export function calculateTotalCosts(records: UsageRecord[]): { flatCost: number; touCost: number } {
-  let touCost = 0;
-  let totalUsage = 0;
+  // Calculate per-month to apply flat rate tiers correctly per billing period
+  const monthlyMap = new Map<string, { usage: number; touCost: number }>();
 
   for (const record of records) {
     const date = new Date(record.date);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     const hour = parseInt(record.startTime.split(':')[0], 10);
     const rate = getTouRate(date, hour);
-    touCost += record.usage * rate;
-    totalUsage += record.usage;
+
+    if (!monthlyMap.has(monthKey)) {
+      monthlyMap.set(monthKey, { usage: 0, touCost: 0 });
+    }
+
+    const monthly = monthlyMap.get(monthKey)!;
+    monthly.usage += record.usage;
+    monthly.touCost += record.usage * rate;
   }
 
-  return {
-    flatCost: calculateFlatRateCost(totalUsage),
-    touCost,
-  };
+  let flatCost = 0;
+  let touCost = 0;
+
+  for (const data of monthlyMap.values()) {
+    flatCost += calculateFlatRateCost(data.usage);
+    touCost += data.touCost;
+  }
+
+  return { flatCost, touCost };
 }
