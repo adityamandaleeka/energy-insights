@@ -248,6 +248,7 @@ function App() {
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 rounded-full border border-stone-200 dark:border-stone-700 text-stone-500 hover:text-stone-700 hover:border-stone-300 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:border-stone-600 transition-colors"
               aria-label="Toggle dark mode"
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               {darkMode ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
