@@ -3,9 +3,10 @@ import React, { useCallback } from 'react';
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
   isLoading: boolean;
+  compact?: boolean;
 }
 
-export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
+export function FileUpload({ onFileSelect, isLoading, compact = false }: FileUploadProps) {
   const [isDragging, setIsDragging] = React.useState(false);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -54,10 +55,11 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
 
   return (
     <div
-      className={`border border-dashed rounded p-8 transition-colors cursor-pointer
+      className={`border border-dashed rounded transition-colors cursor-pointer
+        ${compact ? 'p-4' : 'p-8'}
         ${isDragging 
-          ? 'border-stone-400 bg-stone-100 dark:border-stone-500 dark:bg-stone-800' 
-          : 'border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'
+          ? 'border-violet-400 bg-violet-100 dark:border-violet-500 dark:bg-violet-800/50' 
+          : 'border-violet-300 dark:border-violet-600 hover:border-violet-400 dark:hover:border-violet-500'
         }
         ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
       onDragEnter={handleDragIn}
@@ -76,13 +78,17 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
       
       <div className="text-center">
         {isLoading ? (
-          <p className="text-sm text-stone-500 dark:text-stone-400">Processing...</p>
+          <p className="text-sm text-violet-500 dark:text-violet-400">Processing...</p>
+        ) : compact ? (
+          <p className="text-sm text-violet-700 dark:text-violet-300">
+            Drop CSV or <span className="underline">browse</span>
+          </p>
         ) : (
           <>
-            <p className="text-sm text-stone-600 dark:text-stone-300">
+            <p className="text-sm text-violet-700 dark:text-violet-300">
               Drop your CSV file here or <span className="underline">browse</span>
             </p>
-            <p className="text-xs text-stone-400 dark:text-stone-500 mt-2">
+            <p className="text-xs text-violet-500 dark:text-violet-400 mt-2">
               Electric usage CSV only
             </p>
           </>

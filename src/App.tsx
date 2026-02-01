@@ -14,13 +14,15 @@ import {
   calculateTotalCosts,
 } from './utils/parser';
 import { RATE_EFFECTIVE_DATE, isWinterMonth } from './utils/rates';
-import { generateDemoData } from './utils/demoData';
+import { generateDemoData, DEMO_PERSONAS } from './utils/demoData';
+import type { DemoPersona } from './utils/demoData';
 
 interface AnalysisData {
   records: UsageRecord[];
   monthlyStats: MonthlyStats[];
   hourlyAverages: HourlyAverage[];
   isDemo?: boolean;
+  demoPersona?: DemoPersona;
   flatCost: number;
   touCost: number;
   touSuperCost: number;
@@ -98,8 +100,8 @@ function App() {
     }
   };
 
-  const handleDemo = () => {
-    const records = generateDemoData();
+  const handleDemo = (persona: DemoPersona) => {
+    const records = generateDemoData(persona);
     const monthlyStats = calculateMonthlyStats(records);
     const hourlyAverages = calculateHourlyAverages(records);
     const { flatCost, touCost, touSuperCost } = calculateTotalCosts(records);
@@ -132,6 +134,7 @@ function App() {
       winterPeakUsage,
       summerPeakUsage,
       isDemo: true,
+      demoPersona: persona,
     });
   };
 
@@ -170,19 +173,45 @@ function App() {
         </header>
 
         {!data ? (
-          <div className="max-w-lg">
-            <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
-            
-            <div className="mt-4 text-center">
-              <span className="text-sm text-stone-400 dark:text-stone-500">or</span>
+          <div className="max-w-2xl">
+            {/* Intro blurb */}
+            <div className="mb-8 p-5 bg-gradient-to-br from-teal-50 to-sky-50 dark:from-teal-900/20 dark:to-sky-900/20 border border-teal-200 dark:border-teal-800 rounded-lg">
+              <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100 mb-2">
+                Should you switch to Time-of-Use pricing?
+              </h2>
+              <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                Puget Sound Energy is rolling out <strong>Time-of-Use (TOU)</strong> rate plans that charge different prices based on when you use electricity. 
+                Peak hours (weekday mornings and evenings) cost more, while off-peak hours cost less. 
+                TOU pricing can save you money if you shift usage to off-peak times—and helps reduce strain on the electrical grid when demand is highest.
+                This tool analyzes your actual usage patterns to show you how TOU would affect your bills.
+              </p>
             </div>
-            
-            <button
-              onClick={handleDemo}
-              className="mt-4 w-full py-3 px-4 text-sm font-medium text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
-            >
-              Try with sample data
-            </button>
+
+            {/* Upload option - primary */}
+            <div className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200 dark:border-violet-800 rounded-lg mb-6">
+              <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Upload your data</h3>
+              <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">Get personalized results with your actual PSE usage</p>
+              <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
+            </div>
+              
+            {/* Demo options */}
+            <p className="text-sm text-stone-500 dark:text-stone-400 mb-3">Or try with sample data:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => handleDemo('ev-wfh')}
+                className="p-4 text-left rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 transition-colors"
+              >
+                <p className="font-medium text-sm text-stone-900 dark:text-stone-100">EV Owner, Works from Home</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Charges EV overnight, home during day</p>
+              </button>
+              <button
+                onClick={() => handleDemo('family')}
+                className="p-4 text-left rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 transition-colors"
+              >
+                <p className="font-medium text-sm text-stone-900 dark:text-stone-100">Family with School-Age Kids</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Morning rush, evening family time</p>
+              </button>
+            </div>
             
             {error && (
               <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border-l-2 border-red-400 text-red-700 dark:text-red-400 text-sm">
@@ -208,15 +237,31 @@ function App() {
           <div className="space-y-8">
             {data.isDemo && (
               <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded p-3 flex justify-between items-center">
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Viewing sample data. Upload your own PSE data for accurate results.
-                </p>
-                <button
-                  onClick={handleReset}
-                  className="text-sm text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
-                >
-                  Upload your data
-                </button>
+                <div>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Viewing sample: <strong>{DEMO_PERSONAS.find(p => p.id === data.demoPersona)?.name}</strong>
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                    Upload your own PSE data for accurate results
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {DEMO_PERSONAS.filter(p => p.id !== data.demoPersona).map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleDemo(p.id)}
+                      className="text-xs text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
+                    >
+                      Try {p.name.split(',')[0]}
+                    </button>
+                  ))}
+                  <button
+                    onClick={handleReset}
+                    className="text-xs text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
+                  >
+                    Upload data
+                  </button>
+                </div>
               </div>
             )}
             
