@@ -1,12 +1,14 @@
 import { useState } from 'react';
 
-type RatePlan = 'flat' | 'tou' | 'touSuper';
+export type RatePlan = 'flat' | 'tou' | 'touSuper';
 
 interface CostComparisonProps {
   flatCost: number;
   touCost: number;
   touSuperCost: number;
   monthCount: number;
+  currentPlan: RatePlan;
+  onCurrentPlanChange: (plan: RatePlan) => void;
 }
 
 const PLANS: { id: RatePlan; name: string; schedule: string; description: string }[] = [
@@ -15,9 +17,8 @@ const PLANS: { id: RatePlan; name: string; schedule: string; description: string
   { id: 'touSuper', name: 'TOU + Super Off-Peak', schedule: 'Schedule 327', description: 'Lowest overnight rates' },
 ];
 
-export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: CostComparisonProps) {
+export function CostComparison({ flatCost, touCost, touSuperCost, monthCount, currentPlan, onCurrentPlanChange }: CostComparisonProps) {
   const [showYearly, setShowYearly] = useState(true);
-  const [currentPlan, setCurrentPlan] = useState<RatePlan>('flat');
   
   const costs = { flat: flatCost, tou: touCost, touSuper: touSuperCost };
   const multiplier = showYearly ? 12 / monthCount : 1 / monthCount;
@@ -59,7 +60,7 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: 
           {PLANS.map((plan) => (
             <button
               key={plan.id}
-              onClick={() => setCurrentPlan(plan.id)}
+              onClick={() => onCurrentPlanChange(plan.id)}
               className={`text-xs px-3 py-1.5 rounded transition-colors ${
                 currentPlan === plan.id
                   ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900'

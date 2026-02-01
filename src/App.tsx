@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { CostComparison } from './components/CostComparison';
+import type { RatePlan } from './components/CostComparison';
 import { UsageHeatmap } from './components/UsageHeatmap';
 import { MonthlyChart } from './components/MonthlyChart';
 import { PeakBreakdown } from './components/PeakBreakdown';
@@ -12,7 +13,7 @@ import {
   calculateHourlyAverages,
   calculateTotalCosts,
 } from './utils/parser';
-import { RATE_EFFECTIVE_DATE } from './utils/rates';
+import { RATE_EFFECTIVE_DATE, isWinterMonth } from './utils/rates';
 import { generateDemoData } from './utils/demoData';
 
 interface AnalysisData {
@@ -26,12 +27,15 @@ interface AnalysisData {
   totalUsage: number;
   peakUsage: number;
   offPeakUsage: number;
+  winterPeakUsage: number;
+  summerPeakUsage: number;
 }
 
 function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<AnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<RatePlan>('flat');
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -61,6 +65,18 @@ function App() {
       const totalUsage = records.reduce((sum, r) => sum + r.usage, 0);
       const peakUsage = monthlyStats.reduce((sum, m) => sum + m.peakUsage, 0);
       const offPeakUsage = monthlyStats.reduce((sum, m) => sum + m.offPeakUsage, 0);
+      
+      // Calculate seasonal peak usage for accurate What If calculations
+      let winterPeakUsage = 0;
+      let summerPeakUsage = 0;
+      monthlyStats.forEach(m => {
+        const monthNum = parseInt(m.month.split('-')[1], 10);
+        if (isWinterMonth(monthNum)) {
+          winterPeakUsage += m.peakUsage;
+        } else {
+          summerPeakUsage += m.peakUsage;
+        }
+      });
 
       setData({
         records,
@@ -72,6 +88,8 @@ function App() {
         totalUsage,
         peakUsage,
         offPeakUsage,
+        winterPeakUsage,
+        summerPeakUsage,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file');
@@ -89,6 +107,17 @@ function App() {
     const totalUsage = records.reduce((sum, r) => sum + r.usage, 0);
     const peakUsage = monthlyStats.reduce((sum, m) => sum + m.peakUsage, 0);
     const offPeakUsage = monthlyStats.reduce((sum, m) => sum + m.offPeakUsage, 0);
+    
+    let winterPeakUsage = 0;
+    let summerPeakUsage = 0;
+    monthlyStats.forEach(m => {
+      const monthNum = parseInt(m.month.split('-')[1], 10);
+      if (isWinterMonth(monthNum)) {
+        winterPeakUsage += m.peakUsage;
+      } else {
+        summerPeakUsage += m.peakUsage;
+      }
+    });
 
     setData({
       records,
@@ -100,6 +129,8 @@ function App() {
       totalUsage,
       peakUsage,
       offPeakUsage,
+      winterPeakUsage,
+      summerPeakUsage,
       isDemo: true,
     });
   };
@@ -219,6 +250,8 @@ function App() {
               touCost={data.touCost}
               touSuperCost={data.touSuperCost}
               monthCount={data.monthlyStats.length}
+              currentPlan={currentPlan}
+              onCurrentPlanChange={setCurrentPlan}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -229,9 +262,13 @@ function App() {
               <WhatIfCalculator
                 peakUsage={data.peakUsage}
                 offPeakUsage={data.offPeakUsage}
+                winterPeakUsage={data.winterPeakUsage}
+                summerPeakUsage={data.summerPeakUsage}
                 flatCost={data.flatCost}
                 touCost={data.touCost}
+                touSuperCost={data.touSuperCost}
                 monthCount={data.monthlyStats.length}
+                currentPlan={currentPlan}
               />
             </div>
 

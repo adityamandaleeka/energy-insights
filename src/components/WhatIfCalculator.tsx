@@ -1,29 +1,66 @@
 import { useState } from 'react';
 import { TOU_RATE } from '../utils/rates';
+import type { RatePlan } from './CostComparison';
 
 interface WhatIfCalculatorProps {
   peakUsage: number;
   offPeakUsage: number;
+  winterPeakUsage: number;
+  summerPeakUsage: number;
   flatCost: number;
   touCost: number;
+  touSuperCost: number;
   monthCount: number;
+  currentPlan: RatePlan;
 }
 
-export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost, monthCount }: WhatIfCalculatorProps) {
+export function WhatIfCalculator({ 
+  peakUsage, 
+  offPeakUsage, 
+  winterPeakUsage,
+  summerPeakUsage,
+  flatCost, 
+  touCost, 
+  touSuperCost, 
+  monthCount, 
+  currentPlan 
+}: WhatIfCalculatorProps) {
   const [shiftPercent, setShiftPercent] = useState(20);
 
+  const costs = { flat: flatCost, tou: touCost, touSuper: touSuperCost };
+  const currentCost = costs[currentPlan];
+
   const shiftedKwh = (peakUsage * shiftPercent) / 100;
-  const newPeakUsage = peakUsage - shiftedKwh;
   const newOffPeakUsage = offPeakUsage + shiftedKwh;
 
-  const avgPeakRate = (TOU_RATE.peakRateWinter + TOU_RATE.peakRateSummer) / 2;
-  const originalTouEstimate = (peakUsage * avgPeakRate) + (offPeakUsage * TOU_RATE.offPeakRate);
-  const newTouCost = (newPeakUsage * avgPeakRate) + (newOffPeakUsage * TOU_RATE.offPeakRate);
+  // Calculate shifted amounts proportionally by season
+  const winterRatio = peakUsage > 0 ? winterPeakUsage / peakUsage : 0.5;
+  const summerRatio = 1 - winterRatio;
+  const winterShifted = shiftedKwh * winterRatio;
+  const summerShifted = shiftedKwh * summerRatio;
+
+  // Original TOU cost using seasonal rates
+  const originalTouEstimate = 
+    (winterPeakUsage * TOU_RATE.peakRateWinter) + 
+    (summerPeakUsage * TOU_RATE.peakRateSummer) + 
+    (offPeakUsage * TOU_RATE.offPeakRate);
+  
+  // New TOU cost after shifting
+  const newTouCost = 
+    ((winterPeakUsage - winterShifted) * TOU_RATE.peakRateWinter) + 
+    ((summerPeakUsage - summerShifted) * TOU_RATE.peakRateSummer) + 
+    (newOffPeakUsage * TOU_RATE.offPeakRate);
+  
   const additionalSavings = originalTouEstimate - newTouCost;
 
-  const totalSavingsForPeriod = (flatCost - touCost) + additionalSavings;
+  // Calculate savings vs current plan (not always flat)
+  const totalSavingsForPeriod = (currentCost - touCost) + additionalSavings;
   const monthlySavings = totalSavingsForPeriod / monthCount;
   const yearlySavings = monthlySavings * 12;
+
+  // If already on TOU, just show shift savings
+  const isOnTou = currentPlan === 'tou' || currentPlan === 'touSuper';
+  const shiftOnlySavings = (additionalSavings / monthCount) * 12;
 
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
@@ -47,18 +84,35 @@ export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost, m
         </div>
       </div>
 
-      {yearlySavings >= 0 ? (
-        <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
-          <p className="text-xs text-teal-600 dark:text-teal-400">Potential TOU savings with shift</p>
-          <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${yearlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
-          <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${monthlySavings.toFixed(2)}/mo</p>
-        </div>
+      {isOnTou ? (
+        // Already on TOU - just show shift savings
+        shiftOnlySavings >= 0 ? (
+          <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
+            <p className="text-xs text-teal-600 dark:text-teal-400">Savings from shifting {shiftPercent}% to off-peak</p>
+            <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${shiftOnlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
+            <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${(shiftOnlySavings / 12).toFixed(2)}/mo</p>
+          </div>
+        ) : (
+          <div className="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded p-4">
+            <p className="text-xs text-stone-500 dark:text-stone-400">No additional savings</p>
+            <p className="text-sm text-stone-600 dark:text-stone-300 mt-1">Your usage is already well-distributed</p>
+          </div>
+        )
       ) : (
-        <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded p-4">
-          <p className="text-xs text-orange-600 dark:text-orange-400">TOU would cost more</p>
-          <p className="text-2xl font-semibold text-orange-700 dark:text-orange-300">+${Math.abs(yearlySavings).toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
-          <p className="text-xs text-orange-600 dark:text-orange-500 mt-1">Flat rate is better for your usage pattern</p>
-        </div>
+        // On flat rate - show TOU switch + shift savings
+        yearlySavings >= 0 ? (
+          <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
+            <p className="text-xs text-teal-600 dark:text-teal-400">Potential savings switching to TOU + shifting {shiftPercent}%</p>
+            <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${yearlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
+            <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${monthlySavings.toFixed(2)}/mo</p>
+          </div>
+        ) : (
+          <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded p-4">
+            <p className="text-xs text-orange-600 dark:text-orange-400">TOU would cost more</p>
+            <p className="text-2xl font-semibold text-orange-700 dark:text-orange-300">+${Math.abs(yearlySavings).toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
+            <p className="text-xs text-orange-600 dark:text-orange-500 mt-1">Your current plan is better for your usage pattern</p>
+          </div>
+        )
       )}
 
       <details className="mt-4 text-sm">
