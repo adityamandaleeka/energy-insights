@@ -16,9 +16,9 @@ export function PeakBreakdown({ peakUsage, offPeakUsage }: PeakBreakdownProps) {
   ];
 
   return (
-    <div className="bg-white border border-stone-200 rounded p-6">
-      <h2 className="text-sm font-medium text-stone-700 mb-1">Peak vs Off-Peak</h2>
-      <p className="text-xs text-stone-400 mb-4">Usage distribution</p>
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
+      <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">Peak vs Off-Peak</h2>
+      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Usage distribution</p>
 
       <div className="flex items-center gap-4">
         <div className="w-28 h-28">
@@ -48,29 +48,29 @@ export function PeakBreakdown({ peakUsage, offPeakUsage }: PeakBreakdownProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 bg-orange-500 rounded-full" />
-              <span className="text-stone-600">Peak</span>
+              <span className="text-stone-600 dark:text-stone-300">Peak</span>
             </div>
             <div className="text-right">
-              <span className="font-medium text-stone-900">{peakUsage.toFixed(0)} kWh</span>
-              <span className="text-stone-400 ml-2">{peakPercent}%</span>
+              <span className="font-medium text-stone-900 dark:text-stone-100">{peakUsage.toFixed(0)} kWh</span>
+              <span className="text-stone-400 dark:text-stone-500 ml-2">{peakPercent}%</span>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 bg-teal-500 rounded-full" />
-              <span className="text-stone-600">Off-Peak</span>
+              <span className="text-stone-600 dark:text-stone-300">Off-Peak</span>
             </div>
             <div className="text-right">
-              <span className="font-medium text-stone-900">{offPeakUsage.toFixed(0)} kWh</span>
-              <span className="text-stone-400 ml-2">{offPeakPercent}%</span>
+              <span className="font-medium text-stone-900 dark:text-stone-100">{offPeakUsage.toFixed(0)} kWh</span>
+              <span className="text-stone-400 dark:text-stone-500 ml-2">{offPeakPercent}%</span>
             </div>
           </div>
         </div>
       </div>
 
       {Number(peakPercent) > 30 && (
-        <p className="mt-4 text-xs text-stone-500">
+        <p className="mt-4 text-xs text-stone-500 dark:text-stone-400">
           {peakPercent}% of usage is during peak hours. Shifting some to off-peak could reduce TOU costs.
         </p>
       )}

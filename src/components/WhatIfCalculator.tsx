@@ -23,12 +23,12 @@ export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost }:
   const totalTouSavings = (flatCost - touCost) + additionalSavings;
 
   return (
-    <div className="bg-white border border-stone-200 rounded p-6">
-      <h2 className="text-sm font-medium text-stone-700 mb-1">What If</h2>
-      <p className="text-xs text-stone-400 mb-4">Estimate savings from shifting usage</p>
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
+      <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">What If</h2>
+      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Estimate savings from shifting usage</p>
 
       <div className="mb-5">
-        <label className="block text-xs text-stone-500 mb-2">
+        <label className="block text-xs text-stone-500 dark:text-stone-400 mb-2">
           Shift peak usage to off-peak:
         </label>
         <div className="flex items-center gap-3">
@@ -38,31 +38,31 @@ export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost }:
             max="50"
             value={shiftPercent}
             onChange={(e) => setShiftPercent(Number(e.target.value))}
-            className="flex-1 h-1.5 bg-stone-200 rounded appearance-none cursor-pointer accent-stone-600"
+            className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded appearance-none cursor-pointer accent-teal-600"
           />
-          <span className="text-lg font-medium text-stone-900 w-12 text-right">{shiftPercent}%</span>
+          <span className="text-lg font-medium text-stone-900 dark:text-stone-100 w-12 text-right">{shiftPercent}%</span>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5 text-sm">
         <div>
-          <p className="text-xs text-stone-400">Energy shifted</p>
-          <p className="font-medium text-stone-900">{shiftedKwh.toFixed(0)} kWh</p>
+          <p className="text-xs text-stone-400 dark:text-stone-500">Energy shifted</p>
+          <p className="font-medium text-stone-900 dark:text-stone-100">{shiftedKwh.toFixed(0)} kWh</p>
         </div>
         <div>
-          <p className="text-xs text-stone-400">Additional savings</p>
-          <p className="font-medium text-stone-900">${additionalSavings.toFixed(2)}</p>
+          <p className="text-xs text-stone-400 dark:text-stone-500">Additional savings</p>
+          <p className="font-medium text-stone-900 dark:text-stone-100">${additionalSavings.toFixed(2)}</p>
         </div>
       </div>
 
-      <div className="bg-teal-50 border border-teal-200 rounded p-4">
-        <p className="text-xs text-teal-600">Potential yearly TOU savings</p>
-        <p className="text-2xl font-semibold text-teal-700">${totalTouSavings.toFixed(2)}</p>
+      <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
+        <p className="text-xs text-teal-600 dark:text-teal-400">Potential yearly TOU savings</p>
+        <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${totalTouSavings.toFixed(2)}</p>
       </div>
 
       <details className="mt-4 text-sm">
-        <summary className="text-stone-500 cursor-pointer hover:text-stone-700">Tips for shifting usage</summary>
-        <ul className="mt-2 text-stone-600 space-y-1 pl-4 border-l-2 border-stone-200 text-xs">
+        <summary className="text-stone-500 dark:text-stone-400 cursor-pointer hover:text-stone-700 dark:hover:text-stone-300">Tips for shifting usage</summary>
+        <ul className="mt-2 text-stone-600 dark:text-stone-400 space-y-1 pl-4 border-l-2 border-stone-200 dark:border-stone-700 text-xs">
           <li>Run dishwasher after 8pm or on weekends</li>
           <li>Do laundry before 7am or after 8pm</li>
           <li>Charge EVs overnight</li>

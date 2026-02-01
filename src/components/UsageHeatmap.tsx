@@ -15,14 +15,14 @@ function getHourLabel(hour: number): string {
 }
 
 function getColor(value: number, max: number): string {
-  if (max === 0) return 'bg-stone-100';
+  if (max === 0) return 'bg-stone-100 dark:bg-stone-800';
   const intensity = value / max;
   
-  if (intensity < 0.2) return 'bg-stone-100';
-  if (intensity < 0.4) return 'bg-stone-200';
-  if (intensity < 0.6) return 'bg-stone-300';
-  if (intensity < 0.8) return 'bg-stone-400';
-  return 'bg-stone-600';
+  if (intensity < 0.2) return 'bg-teal-100 dark:bg-teal-900';
+  if (intensity < 0.4) return 'bg-teal-300 dark:bg-teal-700';
+  if (intensity < 0.6) return 'bg-yellow-300 dark:bg-yellow-600';
+  if (intensity < 0.8) return 'bg-orange-400 dark:bg-orange-500';
+  return 'bg-red-500 dark:bg-red-600';
 }
 
 export function UsageHeatmap({ hourlyAverages }: UsageHeatmapProps) {
@@ -36,16 +36,16 @@ export function UsageHeatmap({ hourlyAverages }: UsageHeatmapProps) {
   }
 
   return (
-    <div className="bg-white border border-stone-200 rounded p-6">
-      <h2 className="text-sm font-medium text-stone-700 mb-1">Usage by Hour</h2>
-      <p className="text-xs text-stone-400 mb-4">Average consumption patterns</p>
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
+      <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">Usage by Hour</h2>
+      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Average consumption patterns</p>
       
       <div className="overflow-x-auto">
         <div className="min-w-[500px]">
           <div className="flex mb-1">
             <div className="w-10" />
             {HOURS.filter((_, i) => i % 4 === 0).map((hour) => (
-              <div key={hour} className="flex-1 text-xs text-stone-400 text-center">
+              <div key={hour} className="flex-1 text-xs text-stone-400 dark:text-stone-500 text-center">
                 {getHourLabel(hour)}
               </div>
             ))}
@@ -53,7 +53,7 @@ export function UsageHeatmap({ hourlyAverages }: UsageHeatmapProps) {
 
           {DAYS.map((day, dayIndex) => (
             <div key={day} className="flex items-center mb-0.5">
-              <div className="w-10 text-xs text-stone-500">{day}</div>
+              <div className="w-10 text-xs text-stone-500 dark:text-stone-400">{day}</div>
               <div className="flex-1 flex gap-px">
                 {HOURS.map((hour) => {
                   const key = `${dayIndex}-${hour}`;
@@ -70,19 +70,19 @@ export function UsageHeatmap({ hourlyAverages }: UsageHeatmapProps) {
             </div>
           ))}
 
-          <div className="flex items-center justify-end gap-2 mt-3 text-xs text-stone-400">
+          <div className="flex items-center justify-end gap-2 mt-3 text-xs text-stone-400 dark:text-stone-500">
             <span>Less</span>
             <div className="flex gap-px">
-              <div className="w-4 h-3 bg-stone-100" />
-              <div className="w-4 h-3 bg-stone-200" />
-              <div className="w-4 h-3 bg-stone-300" />
-              <div className="w-4 h-3 bg-stone-400" />
-              <div className="w-4 h-3 bg-stone-600" />
+              <div className="w-4 h-3 bg-teal-100 dark:bg-teal-900" />
+              <div className="w-4 h-3 bg-teal-300 dark:bg-teal-700" />
+              <div className="w-4 h-3 bg-yellow-300 dark:bg-yellow-600" />
+              <div className="w-4 h-3 bg-orange-400 dark:bg-orange-500" />
+              <div className="w-4 h-3 bg-red-500 dark:bg-red-600" />
             </div>
             <span>More</span>
           </div>
 
-          <p className="mt-4 text-xs text-stone-500">
+          <p className="mt-4 text-xs text-stone-500 dark:text-stone-400">
             Peak TOU hours: Mon–Fri 7–10am & 5–8pm
           </p>
         </div>

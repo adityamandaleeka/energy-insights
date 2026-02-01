@@ -31,22 +31,23 @@ export function MonthlyChart({ monthlyStats }: MonthlyChartProps) {
   }));
 
   return (
-    <div className="bg-white border border-stone-200 rounded p-6">
-      <h2 className="text-sm font-medium text-stone-700 mb-1">Monthly Usage</h2>
-      <p className="text-xs text-stone-400 mb-4">Peak vs off-peak by month</p>
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
+      <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">Monthly Usage</h2>
+      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Peak vs off-peak by month</p>
 
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#78716c' }} stroke="#d6d3d1" />
-            <YAxis tick={{ fontSize: 11, fill: '#78716c' }} stroke="#d6d3d1" unit=" kWh" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#a8a29e" strokeOpacity={0.3} />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#78716c' }} stroke="#a8a29e" />
+            <YAxis tick={{ fontSize: 11, fill: '#78716c' }} stroke="#a8a29e" unit=" kWh" />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid #e7e5e4',
+                backgroundColor: '#1c1917',
+                border: '1px solid #44403c',
                 borderRadius: '4px',
                 fontSize: '12px',
+                color: '#e7e5e4',
               }}
               formatter={(value, name) => [
                 `${Number(value).toFixed(0)} kWh`,
@@ -73,13 +74,13 @@ export function MonthlyChart({ monthlyStats }: MonthlyChartProps) {
         </ResponsiveContainer>
       </div>
 
-      <div className="flex justify-end gap-4 mt-3 text-xs text-stone-500">
+      <div className="flex justify-end gap-4 mt-3 text-xs text-stone-500 dark:text-stone-400">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 bg-orange-200" />
+          <div className="w-3 h-3 bg-orange-200 dark:bg-orange-500" />
           <span>Peak</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 bg-teal-100" />
+          <div className="w-3 h-3 bg-teal-100 dark:bg-teal-600" />
           <span>Off-Peak</span>
         </div>
       </div>

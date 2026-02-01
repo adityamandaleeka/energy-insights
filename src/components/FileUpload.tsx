@@ -56,8 +56,8 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
     <div
       className={`border border-dashed rounded p-8 transition-colors cursor-pointer
         ${isDragging 
-          ? 'border-stone-400 bg-stone-100' 
-          : 'border-stone-300 hover:border-stone-400'
+          ? 'border-stone-400 bg-stone-100 dark:border-stone-500 dark:bg-stone-800' 
+          : 'border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500'
         }
         ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
       onDragEnter={handleDragIn}
@@ -76,13 +76,13 @@ export function FileUpload({ onFileSelect, isLoading }: FileUploadProps) {
       
       <div className="text-center">
         {isLoading ? (
-          <p className="text-sm text-stone-500">Processing...</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400">Processing...</p>
         ) : (
           <>
-            <p className="text-sm text-stone-600">
+            <p className="text-sm text-stone-600 dark:text-stone-300">
               Drop your CSV file here or <span className="underline">browse</span>
             </p>
-            <p className="text-xs text-stone-400 mt-2">
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-2">
               Electric usage CSV only
             </p>
           </>
