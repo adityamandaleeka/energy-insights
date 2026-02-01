@@ -1,36 +1,40 @@
 import { useState } from 'react';
 
+type RatePlan = 'flat' | 'tou' | 'touSuper';
+
 interface CostComparisonProps {
   flatCost: number;
   touCost: number;
+  touSuperCost: number;
   monthCount: number;
 }
 
-export function CostComparison({ flatCost, touCost, monthCount }: CostComparisonProps) {
+const PLANS: { id: RatePlan; name: string; schedule: string; description: string }[] = [
+  { id: 'flat', name: 'Flat Rate', schedule: 'Schedule 7', description: 'Same rate all day' },
+  { id: 'tou', name: 'Time-of-Use', schedule: 'Schedule 307', description: 'Peak/off-peak pricing' },
+  { id: 'touSuper', name: 'TOU + Super Off-Peak', schedule: 'Schedule 327', description: 'Lowest overnight rates' },
+];
+
+export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: CostComparisonProps) {
   const [showYearly, setShowYearly] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<RatePlan>('flat');
   
-  const savings = flatCost - touCost;
-  const savingsPercent = ((savings / flatCost) * 100).toFixed(1);
-  const wouldSave = savings > 0;
-
-  const monthlyFlat = flatCost / monthCount;
-  const monthlyTou = touCost / monthCount;
-  const monthlySavings = savings / monthCount;
-  const yearlyFlat = monthlyFlat * 12;
-  const yearlyTou = monthlyTou * 12;
-  const yearlySavings = monthlySavings * 12;
-
-  const displayFlat = showYearly ? yearlyFlat : monthlyFlat;
-  const displayTou = showYearly ? yearlyTou : monthlyTou;
-  const displaySavings = showYearly ? yearlySavings : monthlySavings;
+  const costs = { flat: flatCost, tou: touCost, touSuper: touSuperCost };
+  const multiplier = showYearly ? 12 / monthCount : 1 / monthCount;
   const periodLabel = showYearly ? '/yr' : '/mo';
+
+  // Find best plan
+  const sortedPlans = [...PLANS].sort((a, b) => costs[a.id] - costs[b.id]);
+  const bestPlan = sortedPlans[0];
+  const currentCost = costs[selectedPlan] * multiplier;
+  const bestCost = costs[bestPlan.id] * multiplier;
 
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200">Cost Comparison</h2>
-          <p className="text-xs text-stone-400 dark:text-stone-500">Based on {monthCount} month{monthCount !== 1 ? 's' : ''} of data</p>
+          <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200">Rate Plan Comparison</h2>
+          <p className="text-xs text-stone-400 dark:text-stone-500">Based on {monthCount} month{monthCount !== 1 ? 's' : ''} of your usage data</p>
         </div>
         <div className="flex text-xs border border-stone-200 dark:border-stone-700 rounded overflow-hidden">
           <button
@@ -47,52 +51,82 @@ export function CostComparison({ flatCost, touCost, monthCount }: CostComparison
           </button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div>
-          <p className="text-xs text-stone-400 dark:text-stone-500 mb-1">Flat Rate</p>
-          <p className="text-xl font-semibold text-stone-900 dark:text-stone-100">${displayFlat.toFixed(2)}</p>
-          <p className="text-xs text-stone-400 dark:text-stone-500">Schedule 7</p>
-        </div>
-        <div>
-          <p className="text-xs text-stone-400 dark:text-stone-500 mb-1">Time-of-Use</p>
-          <p className="text-xl font-semibold text-stone-900 dark:text-stone-100">${displayTou.toFixed(2)}</p>
-          <p className="text-xs text-stone-400 dark:text-stone-500">Schedule 307</p>
-        </div>
-        <div>
-          <p className="text-xs text-stone-400 dark:text-stone-500 mb-1">Difference</p>
-          <p className={`text-xl font-semibold ${wouldSave ? 'text-teal-600 dark:text-teal-400' : 'text-orange-600 dark:text-orange-400'}`}>
-            {wouldSave ? '−' : '+'}${Math.abs(displaySavings).toFixed(2)}
+
+      {/* Plan selector cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        {PLANS.map((plan) => {
+          const cost = costs[plan.id] * multiplier;
+          const isSelected = selectedPlan === plan.id;
+          const isBest = plan.id === bestPlan.id;
+          const diff = cost - bestCost;
+          
+          return (
+            <button
+              key={plan.id}
+              onClick={() => setSelectedPlan(plan.id)}
+              className={`text-left p-4 rounded border-2 transition-colors ${
+                isSelected 
+                  ? 'border-teal-500 dark:border-teal-400 bg-teal-50 dark:bg-teal-900/20' 
+                  : 'border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
+              }`}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="font-medium text-stone-900 dark:text-stone-100 text-sm">{plan.name}</p>
+                  <p className="text-xs text-stone-400 dark:text-stone-500">{plan.schedule}</p>
+                </div>
+                {isBest && (
+                  <span className="text-xs bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded">
+                    Best
+                  </span>
+                )}
+              </div>
+              <p className="text-xl font-semibold text-stone-900 dark:text-stone-100">
+                ${cost.toFixed(2)}
+                <span className="text-sm font-normal text-stone-500">{periodLabel}</span>
+              </p>
+              {!isBest && (
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  +${diff.toFixed(2)} vs best
+                </p>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Recommendation */}
+      {selectedPlan !== bestPlan.id && (
+        <div className="rounded p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 mb-6">
+          <p className="text-sm text-teal-700 dark:text-teal-300">
+            Switching to <strong>{bestPlan.name}</strong> would save you ${(currentCost - bestCost).toFixed(2)}{periodLabel}
           </p>
-          <p className="text-xs text-stone-400 dark:text-stone-500">{Math.abs(Number(savingsPercent))}% {wouldSave ? 'less' : 'more'}</p>
         </div>
-      </div>
+      )}
 
-      <div className={`rounded p-4 ${wouldSave ? 'bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800' : 'bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800'}`}>
-        <p className={`text-sm ${wouldSave ? 'text-teal-700 dark:text-teal-300' : 'text-orange-700 dark:text-orange-300'}`}>
-          {wouldSave 
-            ? `TOU would save you $${Math.abs(displaySavings).toFixed(2)}${periodLabel}` 
-            : `TOU would cost $${Math.abs(displaySavings).toFixed(2)}${periodLabel} more`}
-        </p>
-      </div>
+      {selectedPlan === bestPlan.id && (
+        <div className="rounded p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 mb-6">
+          <p className="text-sm text-teal-700 dark:text-teal-300">
+            <strong>{bestPlan.name}</strong> is the best plan for your usage pattern!
+          </p>
+        </div>
+      )}
 
-      <details className="mt-6 text-sm">
+      <details className="text-sm">
         <summary className="text-stone-500 dark:text-stone-400 cursor-pointer hover:text-stone-700 dark:hover:text-stone-300">Rate details (as of Jan 2026)</summary>
-        <div className="mt-3 text-stone-600 dark:text-stone-400 space-y-2 pl-4 border-l-2 border-stone-200 dark:border-stone-700">
-          <p className="font-medium">Flat Rate (Schedule 7):</p>
-          <ul className="text-xs space-y-0.5 ml-2">
-            <li>Basic charge: $7.49/mo</li>
-            <li>Tier 1: ~$0.185/kWh (first 600 kWh)</li>
-            <li>Tier 2: ~$0.205/kWh (over 600 kWh)</li>
-          </ul>
-          <p className="font-medium mt-3">Time-of-Use (Schedule 307):</p>
-          <ul className="text-xs space-y-0.5 ml-2">
-            <li>Basic charge: $7.49/mo</li>
-            <li>Peak hours: Mon–Fri 7–10am & 5–8pm</li>
-            <li>Winter peak (Oct–Mar): $0.538/kWh</li>
-            <li>Summer peak (Apr–Sep): $0.341/kWh</li>
-            <li>Off-peak: $0.114/kWh</li>
-          </ul>
+        <div className="mt-3 text-stone-600 dark:text-stone-400 space-y-3 pl-4 border-l-2 border-stone-200 dark:border-stone-700 text-xs">
+          <div>
+            <p className="font-medium text-sm">Flat Rate (Schedule 7)</p>
+            <p>Basic: $7.49/mo • Tier 1: ~$0.185/kWh (≤600 kWh) • Tier 2: ~$0.205/kWh</p>
+          </div>
+          <div>
+            <p className="font-medium text-sm">Time-of-Use (Schedule 307)</p>
+            <p>Basic: $7.49/mo • Peak (Mon–Fri 7–10am, 5–8pm): $0.54 winter / $0.34 summer • Off-peak: $0.11</p>
+          </div>
+          <div>
+            <p className="font-medium text-sm">TOU + Super Off-Peak (Schedule 327)</p>
+            <p>Basic: $7.49/mo • Peak: $0.51 winter / $0.28 summer • Mid: $0.13 • Super off-peak (11pm–7am): $0.08</p>
+          </div>
         </div>
       </details>
     </div>

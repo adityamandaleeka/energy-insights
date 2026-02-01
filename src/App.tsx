@@ -12,6 +12,7 @@ import {
   calculateHourlyAverages,
   calculateTotalCosts,
 } from './utils/parser';
+import { RATE_EFFECTIVE_DATE } from './utils/rates';
 
 interface AnalysisData {
   records: UsageRecord[];
@@ -19,6 +20,7 @@ interface AnalysisData {
   hourlyAverages: HourlyAverage[];
   flatCost: number;
   touCost: number;
+  touSuperCost: number;
   totalUsage: number;
   peakUsage: number;
   offPeakUsage: number;
@@ -52,7 +54,7 @@ function App() {
 
       const monthlyStats = calculateMonthlyStats(records);
       const hourlyAverages = calculateHourlyAverages(records);
-      const { flatCost, touCost } = calculateTotalCosts(records);
+      const { flatCost, touCost, touSuperCost } = calculateTotalCosts(records);
 
       const totalUsage = records.reduce((sum, r) => sum + r.usage, 0);
       const peakUsage = monthlyStats.reduce((sum, m) => sum + m.peakUsage, 0);
@@ -64,6 +66,7 @@ function App() {
         hourlyAverages,
         flatCost,
         touCost,
+        touSuperCost,
         totalUsage,
         peakUsage,
         offPeakUsage,
@@ -160,6 +163,7 @@ function App() {
             <CostComparison
               flatCost={data.flatCost}
               touCost={data.touCost}
+              touSuperCost={data.touSuperCost}
               monthCount={data.monthlyStats.length}
             />
 
@@ -184,7 +188,7 @@ function App() {
         )}
 
         <footer className="mt-16 pt-6 border-t border-stone-200 dark:border-stone-800 text-xs text-stone-400 dark:text-stone-500 space-y-1">
-          <p>Rate estimates based on PSE Schedule 7 and Schedule 307 as of 2025. Actual bills include additional fees and taxes.</p>
+          <p>Rates from PSE Electric Summary Sheet dated {RATE_EFFECTIVE_DATE}. Actual bills may include additional fees and taxes.</p>
           <p>This tool is not affiliated with, endorsed by, or connected to Puget Sound Energy in any way.</p>
         </footer>
       </div>

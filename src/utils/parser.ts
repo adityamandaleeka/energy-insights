@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 import type { UsageRecord, DailyUsage, MonthlyStats, HourlyAverage } from '../types';
-import { isPeakHour, getTouRate, calculateFlatRateCost, BASIC_CHARGE } from './rates';
+import { isPeakHour, getTouRate, getTouSuperRate, calculateFlatRateCost, BASIC_CHARGE } from './rates';
 
 interface RawRow {
   TYPE: string;
@@ -161,32 +161,42 @@ export function calculateHourlyAverages(records: UsageRecord[]): HourlyAverage[]
   });
 }
 
-export function calculateTotalCosts(records: UsageRecord[]): { flatCost: number; touCost: number } {
+export interface AllPlanCosts {
+  flatCost: number;
+  touCost: number;
+  touSuperCost: number;
+}
+
+export function calculateTotalCosts(records: UsageRecord[]): AllPlanCosts {
   // Calculate per-month to apply flat rate tiers correctly per billing period
-  const monthlyMap = new Map<string, { usage: number; touCost: number }>();
+  const monthlyMap = new Map<string, { usage: number; touCost: number; touSuperCost: number }>();
 
   for (const record of records) {
     const date = new Date(record.date);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     const hour = parseInt(record.startTime.split(':')[0], 10);
-    const rate = getTouRate(date, hour);
+    const touRate = getTouRate(date, hour);
+    const touSuperRate = getTouSuperRate(date, hour);
 
     if (!monthlyMap.has(monthKey)) {
-      monthlyMap.set(monthKey, { usage: 0, touCost: 0 });
+      monthlyMap.set(monthKey, { usage: 0, touCost: 0, touSuperCost: 0 });
     }
 
     const monthly = monthlyMap.get(monthKey)!;
     monthly.usage += record.usage;
-    monthly.touCost += record.usage * rate;
+    monthly.touCost += record.usage * touRate;
+    monthly.touSuperCost += record.usage * touSuperRate;
   }
 
   let flatCost = 0;
   let touCost = 0;
+  let touSuperCost = 0;
 
   for (const data of monthlyMap.values()) {
     flatCost += calculateFlatRateCost(data.usage);
-    touCost += data.touCost + BASIC_CHARGE; // Add basic charge per month for TOU
+    touCost += data.touCost + BASIC_CHARGE;
+    touSuperCost += data.touSuperCost + BASIC_CHARGE;
   }
 
-  return { flatCost, touCost };
+  return { flatCost, touCost, touSuperCost };
 }
