@@ -6,9 +6,10 @@ interface WhatIfCalculatorProps {
   offPeakUsage: number;
   flatCost: number;
   touCost: number;
+  monthCount: number;
 }
 
-export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost }: WhatIfCalculatorProps) {
+export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost, monthCount }: WhatIfCalculatorProps) {
   const [shiftPercent, setShiftPercent] = useState(20);
 
   const shiftedKwh = (peakUsage * shiftPercent) / 100;
@@ -20,7 +21,9 @@ export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost }:
   const newTouCost = (newPeakUsage * avgPeakRate) + (newOffPeakUsage * TOU_RATE.offPeakRate);
   const additionalSavings = originalTouEstimate - newTouCost;
 
-  const totalTouSavings = (flatCost - touCost) + additionalSavings;
+  const totalSavingsForPeriod = (flatCost - touCost) + additionalSavings;
+  const monthlySavings = totalSavingsForPeriod / monthCount;
+  const yearlySavings = monthlySavings * 12;
 
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
@@ -44,20 +47,10 @@ export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost }:
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-5 text-sm">
-        <div>
-          <p className="text-xs text-stone-400 dark:text-stone-500">Energy shifted</p>
-          <p className="font-medium text-stone-900 dark:text-stone-100">{shiftedKwh.toFixed(0)} kWh</p>
-        </div>
-        <div>
-          <p className="text-xs text-stone-400 dark:text-stone-500">Additional savings</p>
-          <p className="font-medium text-stone-900 dark:text-stone-100">${additionalSavings.toFixed(2)}</p>
-        </div>
-      </div>
-
       <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
-        <p className="text-xs text-teal-600 dark:text-teal-400">Potential yearly TOU savings</p>
-        <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${totalTouSavings.toFixed(2)}</p>
+        <p className="text-xs text-teal-600 dark:text-teal-400">Potential TOU savings with shift</p>
+        <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${yearlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
+        <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${monthlySavings.toFixed(2)}/mo</p>
       </div>
 
       <details className="mt-4 text-sm">

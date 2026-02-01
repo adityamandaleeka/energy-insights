@@ -160,7 +160,7 @@ function App() {
             <CostComparison
               flatCost={data.flatCost}
               touCost={data.touCost}
-              totalUsage={data.totalUsage}
+              monthCount={data.monthlyStats.length}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -173,6 +173,7 @@ function App() {
                 offPeakUsage={data.offPeakUsage}
                 flatCost={data.flatCost}
                 touCost={data.touCost}
+                monthCount={data.monthlyStats.length}
               />
             </div>
 
