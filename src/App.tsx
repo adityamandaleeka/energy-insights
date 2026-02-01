@@ -11,6 +11,7 @@ import { HighUsageDays } from './components/HighUsageDays';
 import { SeasonalComparison } from './components/SeasonalComparison';
 import { UsagePatterns } from './components/UsagePatterns';
 import { StatisticalInsights } from './components/StatisticalInsights';
+import { UsageComparisons } from './components/UsageComparisons';
 import type { UsageRecord, MonthlyStats, HourlyAverage } from './types';
 import {
   parseCSVWithMetadata,
@@ -447,6 +448,12 @@ function App() {
             <SeasonalComparison records={data.records} weather={data.weather} />
 
             <UsagePatterns records={data.records} weather={data.weather} />
+
+            <UsageComparisons 
+              totalUsage={data.totalUsage} 
+              numDays={data.records.length > 0 ? new Set(data.records.map(r => r.date)).size : 1}
+              records={data.records}
+            />
 
             {nerdMode && <StatisticalInsights records={data.records} weather={data.weather} />}
 
