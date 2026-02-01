@@ -9,6 +9,7 @@ import { WhatIfCalculator } from './components/WhatIfCalculator';
 import { WeekdayComparison } from './components/WeekdayComparison';
 import { HighUsageDays } from './components/HighUsageDays';
 import { SeasonalComparison } from './components/SeasonalComparison';
+import { UsagePatterns } from './components/UsagePatterns';
 import type { UsageRecord, MonthlyStats, HourlyAverage } from './types';
 import {
   parseCSV,
@@ -359,6 +360,8 @@ function App() {
             </div>
 
             <SeasonalComparison records={data.records} />
+
+            <UsagePatterns records={data.records} />
 
             <MonthlyChart monthlyStats={data.monthlyStats} />
           </div>
