@@ -33,9 +33,35 @@ interface AnalysisData {
   summerPeakUsage: number;
 }
 
+const STORAGE_KEY = 'energy-insights-data';
+
+function loadCachedData(): AnalysisData | null {
+  try {
+    const cached = localStorage.getItem(STORAGE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+function saveCachedData(data: AnalysisData | null) {
+  try {
+    if (data && !data.isDemo) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage errors (quota exceeded, etc.)
+  }
+}
+
 function App() {
   const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<AnalysisData | null>(null);
+  const [data, setData] = useState<AnalysisData | null>(() => loadCachedData());
   const [error, setError] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<RatePlan>('flat');
   const [darkMode, setDarkMode] = useState(() => {
@@ -48,6 +74,11 @@ function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
+
+  // Save to localStorage when data changes
+  useEffect(() => {
+    saveCachedData(data);
+  }, [data]);
 
   const handleFileSelect = async (file: File) => {
     setIsLoading(true);
