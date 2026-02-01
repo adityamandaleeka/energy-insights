@@ -17,7 +17,7 @@ const PLANS: { id: RatePlan; name: string; schedule: string; description: string
 
 export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: CostComparisonProps) {
   const [showYearly, setShowYearly] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<RatePlan>('flat');
+  const [currentPlan, setCurrentPlan] = useState<RatePlan>('flat');
   
   const costs = { flat: flatCost, tou: touCost, touSuper: touSuperCost };
   const multiplier = showYearly ? 12 / monthCount : 1 / monthCount;
@@ -26,12 +26,12 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: 
   // Find best plan
   const sortedPlans = [...PLANS].sort((a, b) => costs[a.id] - costs[b.id]);
   const bestPlan = sortedPlans[0];
-  const currentCost = costs[selectedPlan] * multiplier;
+  const currentCost = costs[currentPlan] * multiplier;
   const bestCost = costs[bestPlan.id] * multiplier;
 
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200">Rate Plan Comparison</h2>
           <p className="text-xs text-stone-400 dark:text-stone-500">Based on {monthCount} month{monthCount !== 1 ? 's' : ''} of your usage data</p>
@@ -52,22 +52,43 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: 
         </div>
       </div>
 
-      {/* Plan selector cards */}
+      {/* Current plan selector */}
+      <div className="mb-6 p-3 bg-stone-50 dark:bg-stone-800 rounded border border-stone-200 dark:border-stone-700">
+        <label className="text-xs text-stone-500 dark:text-stone-400 block mb-2">I'm currently on:</label>
+        <div className="flex gap-2 flex-wrap">
+          {PLANS.map((plan) => (
+            <button
+              key={plan.id}
+              onClick={() => setCurrentPlan(plan.id)}
+              className={`text-xs px-3 py-1.5 rounded transition-colors ${
+                currentPlan === plan.id
+                  ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900'
+                  : 'bg-white dark:bg-stone-700 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-600 hover:border-stone-300 dark:hover:border-stone-500'
+              }`}
+            >
+              {plan.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Plan comparison cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         {PLANS.map((plan) => {
           const cost = costs[plan.id] * multiplier;
-          const isSelected = selectedPlan === plan.id;
+          const isCurrent = currentPlan === plan.id;
           const isBest = plan.id === bestPlan.id;
-          const diff = cost - bestCost;
+          const savingsVsCurrent = currentCost - cost;
           
           return (
-            <button
+            <div
               key={plan.id}
-              onClick={() => setSelectedPlan(plan.id)}
-              className={`text-left p-4 rounded border-2 transition-colors ${
-                isSelected 
-                  ? 'border-teal-500 dark:border-teal-400 bg-teal-50 dark:bg-teal-900/20' 
-                  : 'border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
+              className={`p-4 rounded border-2 ${
+                isCurrent 
+                  ? 'border-stone-400 dark:border-stone-500 bg-stone-50 dark:bg-stone-800' 
+                  : isBest
+                  ? 'border-teal-500 dark:border-teal-400 bg-teal-50 dark:bg-teal-900/20'
+                  : 'border-stone-200 dark:border-stone-700'
               }`}
             >
               <div className="flex justify-between items-start mb-2">
@@ -75,28 +96,40 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: 
                   <p className="font-medium text-stone-900 dark:text-stone-100 text-sm">{plan.name}</p>
                   <p className="text-xs text-stone-400 dark:text-stone-500">{plan.schedule}</p>
                 </div>
-                {isBest && (
-                  <span className="text-xs bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded">
-                    Best
-                  </span>
-                )}
+                <div className="flex gap-1">
+                  {isCurrent && (
+                    <span className="text-xs bg-stone-200 dark:bg-stone-600 text-stone-600 dark:text-stone-200 px-2 py-0.5 rounded">
+                      Current
+                    </span>
+                  )}
+                  {isBest && (
+                    <span className="text-xs bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded">
+                      Best
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="text-xl font-semibold text-stone-900 dark:text-stone-100">
                 ${cost.toFixed(2)}
                 <span className="text-sm font-normal text-stone-500">{periodLabel}</span>
               </p>
-              {!isBest && (
-                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                  +${diff.toFixed(2)} vs best
+              {!isCurrent && savingsVsCurrent > 0 && (
+                <p className="text-xs text-teal-600 dark:text-teal-400 mt-1">
+                  Save ${savingsVsCurrent.toFixed(2)}{periodLabel}
                 </p>
               )}
-            </button>
+              {!isCurrent && savingsVsCurrent < 0 && (
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  +${Math.abs(savingsVsCurrent).toFixed(2)}{periodLabel} more
+                </p>
+              )}
+            </div>
           );
         })}
       </div>
 
       {/* Recommendation */}
-      {selectedPlan !== bestPlan.id && (
+      {currentPlan !== bestPlan.id && (
         <div className="rounded p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 mb-6">
           <p className="text-sm text-teal-700 dark:text-teal-300">
             Switching to <strong>{bestPlan.name}</strong> would save you ${(currentCost - bestCost).toFixed(2)}{periodLabel}
@@ -104,10 +137,10 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount }: 
         </div>
       )}
 
-      {selectedPlan === bestPlan.id && (
+      {currentPlan === bestPlan.id && (
         <div className="rounded p-4 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 mb-6">
           <p className="text-sm text-teal-700 dark:text-teal-300">
-            <strong>{bestPlan.name}</strong> is the best plan for your usage pattern!
+            You're already on the best plan for your usage pattern!
           </p>
         </div>
       )}
