@@ -1,19 +1,26 @@
+import type { DailyWeather } from '../utils/weather';
+
 interface UsagePatternsProps {
   records: { date: string; startTime: string; usage: number }[];
+  weather?: DailyWeather[];
 }
 
 interface Pattern {
-  type: 'baseline' | 'recurring' | 'spike' | 'night-owl';
+  type: 'baseline' | 'recurring' | 'spike' | 'night-owl' | 'hvac';
   title: string;
   description: string;
   icon: string;
   value?: string;
 }
 
-export function UsagePatterns({ records }: UsagePatternsProps) {
+export function UsagePatterns({ records, weather }: UsagePatternsProps) {
   if (records.length === 0) return null;
 
   const patterns: Pattern[] = [];
+
+  // Create weather lookup
+  const weatherMap = new Map(weather?.map(w => [w.date, w]) || []);
+  const hasWeather = weather && weather.length > 30;
 
   // 1. Calculate baseline (always-on load) - 5th percentile
   const sortedUsage = [...records].sort((a, b) => a.usage - b.usage);
@@ -31,7 +38,80 @@ export function UsagePatterns({ records }: UsagePatternsProps) {
     });
   }
 
-  // 2. Find hourly averages to detect patterns
+  // 2. HVAC detection using weather data
+  if (hasWeather) {
+    // Aggregate daily usage
+    const dailyUsage = new Map<string, number>();
+    for (const record of records) {
+      dailyUsage.set(record.date, (dailyUsage.get(record.date) || 0) + record.usage);
+    }
+    
+    // Match with weather and calculate correlation
+    const paired: { temp: number; usage: number }[] = [];
+    for (const [date, usage] of dailyUsage.entries()) {
+      const w = weatherMap.get(date);
+      if (w && w.tempMean != null) {
+        paired.push({ temp: w.tempMean, usage });
+      }
+    }
+    
+    if (paired.length >= 30) {
+      // Split into cold and warm days
+      const coldDays = paired.filter(p => p.temp <= 45);
+      const warmDays = paired.filter(p => p.temp >= 75);
+      const mildDays = paired.filter(p => p.temp > 50 && p.temp < 70);
+      
+      const coldAvg = coldDays.length > 5 
+        ? coldDays.reduce((s, p) => s + p.usage, 0) / coldDays.length 
+        : null;
+      const warmAvg = warmDays.length > 5 
+        ? warmDays.reduce((s, p) => s + p.usage, 0) / warmDays.length 
+        : null;
+      const mildAvg = mildDays.length > 5 
+        ? mildDays.reduce((s, p) => s + p.usage, 0) / mildDays.length 
+        : null;
+      
+      // Detect heating
+      if (coldAvg && mildAvg && coldAvg > mildAvg * 1.3) {
+        const heatingUsage = coldAvg - mildAvg;
+        patterns.push({
+          type: 'hvac',
+          title: 'Electric heating detected',
+          description: `On cold days (≤45°F), you use ~${heatingUsage.toFixed(1)} kWh/day more than mild days. This suggests electric heating.`,
+          icon: '🔥',
+          value: `+${((coldAvg / mildAvg - 1) * 100).toFixed(0)}%`,
+        });
+      }
+      
+      // Detect cooling
+      if (warmAvg && mildAvg && warmAvg > mildAvg * 1.3) {
+        const coolingUsage = warmAvg - mildAvg;
+        patterns.push({
+          type: 'hvac',
+          title: 'Air conditioning detected',
+          description: `On hot days (≥75°F), you use ~${coolingUsage.toFixed(1)} kWh/day more than mild days. This suggests AC usage.`,
+          icon: '❄️',
+          value: `+${((warmAvg / mildAvg - 1) * 100).toFixed(0)}%`,
+        });
+      }
+      
+      // No HVAC sensitivity
+      if (coldAvg && warmAvg && mildAvg) {
+        const coldRatio = coldAvg / mildAvg;
+        const warmRatio = warmAvg / mildAvg;
+        if (coldRatio < 1.15 && warmRatio < 1.15) {
+          patterns.push({
+            type: 'hvac',
+            title: 'Low temperature sensitivity',
+            description: 'Your usage barely changes with temperature. You likely don\'t have electric heating/cooling, or it\'s very efficient.',
+            icon: '💚',
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Find hourly averages to detect patterns
   const hourlyStats = new Map<number, { total: number; count: number; values: number[] }>();
   for (const record of records) {
     const hour = parseInt(record.startTime.split(':')[0], 10);
@@ -73,7 +153,7 @@ export function UsagePatterns({ records }: UsagePatternsProps) {
     }
   }
 
-  // 3. Check for overnight activity (11pm-5am)
+  // 4. Check for overnight activity (11pm-5am)
   const nightHours = [23, 0, 1, 2, 3, 4];
   const dayHours = [10, 11, 12, 13, 14, 15];
   const nightAvg = nightHours.reduce((sum, h) => sum + (hourlyAvg.get(h) || 0), 0) / nightHours.length;
@@ -89,7 +169,7 @@ export function UsagePatterns({ records }: UsagePatternsProps) {
     });
   }
 
-  // 4. Find unusual spikes - use 95th percentile as threshold instead of hourly avg
+  // 5. Find unusual spikes - use 95th percentile as threshold instead of hourly avg
   const p95Index = Math.floor(sortedUsage.length * 0.95);
   const p95 = sortedUsage[p95Index]?.usage || 0;
   const spikeThreshold = Math.max(p95 * 1.5, 1.0); // 1.5x the 95th percentile, min 1 kWh
@@ -129,7 +209,7 @@ export function UsagePatterns({ records }: UsagePatternsProps) {
     });
   }
 
-  // 5. Check for consistent patterns (low variance at certain hours = scheduled device)
+  // 6. Check for consistent patterns (low variance at certain hours = scheduled device)
   const consistentHours: number[] = [];
   hourlyStats.forEach((stats, hour) => {
     if (stats.values.length > 10) {

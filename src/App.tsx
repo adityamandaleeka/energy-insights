@@ -10,16 +10,20 @@ import { WeekdayComparison } from './components/WeekdayComparison';
 import { HighUsageDays } from './components/HighUsageDays';
 import { SeasonalComparison } from './components/SeasonalComparison';
 import { UsagePatterns } from './components/UsagePatterns';
+import { StatisticalInsights } from './components/StatisticalInsights';
 import type { UsageRecord, MonthlyStats, HourlyAverage } from './types';
 import {
-  parseCSV,
+  parseCSVWithMetadata,
   calculateMonthlyStats,
   calculateHourlyAverages,
   calculateTotalCosts,
 } from './utils/parser';
+import type { CSVMetadata } from './utils/parser';
 import { RATE_EFFECTIVE_DATE, isWinterMonth } from './utils/rates';
 import { generateDemoData, DEMO_PERSONAS } from './utils/demoData';
 import type { DemoPersona } from './utils/demoData';
+import { extractZipCode, fetchWeatherData } from './utils/weather';
+import type { DailyWeather } from './utils/weather';
 
 interface AnalysisData {
   records: UsageRecord[];
@@ -35,6 +39,8 @@ interface AnalysisData {
   offPeakUsage: number;
   winterPeakUsage: number;
   summerPeakUsage: number;
+  metadata?: CSVMetadata;
+  weather?: DailyWeather[];
 }
 
 const STORAGE_KEY = 'energy-insights-data';
@@ -68,6 +74,9 @@ function App() {
   const [data, setData] = useState<AnalysisData | null>(() => loadCachedData());
   const [error, setError] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<RatePlan>('flat');
+  const [nerdMode, setNerdMode] = useState(false);
+  const [nerdToastVisible, setNerdToastVisible] = useState(false);
+  const [nerdToastFading, setNerdToastFading] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -89,7 +98,7 @@ function App() {
     setError(null);
 
     try {
-      const records = await parseCSV(file);
+      const { records, metadata } = await parseCSVWithMetadata(file);
       
       if (records.length === 0) {
         throw new Error('No electric usage data found in this file');
@@ -115,6 +124,22 @@ function App() {
         }
       });
 
+      // Fetch weather data if we have an address with zip code
+      let weather: DailyWeather[] | undefined;
+      if (metadata.address) {
+        const zipCode = extractZipCode(metadata.address);
+        if (zipCode && records.length > 0) {
+          const dates = records.map(r => r.date).sort();
+          const startDate = dates[0];
+          const endDate = dates[dates.length - 1];
+          try {
+            weather = await fetchWeatherData(zipCode, startDate, endDate);
+          } catch (e) {
+            console.warn('Failed to fetch weather data:', e);
+          }
+        }
+      }
+
       setData({
         records,
         monthlyStats,
@@ -127,6 +152,8 @@ function App() {
         offPeakUsage,
         winterPeakUsage,
         summerPeakUsage,
+        metadata,
+        weather,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file');
@@ -136,7 +163,8 @@ function App() {
   };
 
   const handleDemo = (persona: DemoPersona) => {
-    const records = generateDemoData(persona);
+    const demoData = generateDemoData(persona);
+    const { records, metadata, weather } = demoData;
     const monthlyStats = calculateMonthlyStats(records);
     const hourlyAverages = calculateHourlyAverages(records);
     const { flatCost, touCost, touSuperCost } = calculateTotalCosts(records);
@@ -170,6 +198,8 @@ function App() {
       summerPeakUsage,
       isDemo: true,
       demoPersona: persona,
+      metadata,
+      weather,
     });
   };
 
@@ -190,22 +220,58 @@ function App() {
               Analyze your PSE electricity data and compare rate plans
             </p>
           </div>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
+          <div className="flex gap-2">
+            {data && (
+              <button
+                onClick={() => {
+                  const newValue = !nerdMode;
+                  setNerdMode(newValue);
+                  if (newValue) {
+                    setNerdToastVisible(true);
+                    setNerdToastFading(false);
+                    setTimeout(() => setNerdToastFading(true), 1500);
+                    setTimeout(() => setNerdToastVisible(false), 2000);
+                  }
+                }}
+                className={`p-2 text-xl rounded-full border transition-all ${
+                  nerdMode 
+                    ? 'bg-violet-100 dark:bg-violet-900/50 border-violet-300 dark:border-violet-700 scale-110' 
+                    : 'border-stone-200 dark:border-stone-700 grayscale opacity-50 hover:opacity-75 hover:border-stone-300 dark:hover:border-stone-600'
+                }`}
+                aria-label="Toggle advanced stats"
+                title="Advanced stats for nerds"
+              >
+                🤓
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-full border border-stone-200 dark:border-stone-700 text-stone-500 hover:text-stone-700 hover:border-stone-300 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:border-stone-600 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </header>
+
+        {/* Nerd mode toast */}
+        {nerdToastVisible && (
+          <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-500 ${nerdToastFading ? 'opacity-0' : 'opacity-100'}`}>
+            <div className="bg-violet-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
+              <span className="text-xl">🤓</span>
+              <span className="font-medium">Nerd mode enabled!</span>
+              <span className="text-violet-200 text-sm">Advanced stats shown below</span>
+            </div>
+          </div>
+        )}
 
         {!data ? (
           <div className="max-w-2xl">
@@ -356,12 +422,14 @@ function App() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <WeekdayComparison records={data.records} />
-              <HighUsageDays records={data.records} />
+              <HighUsageDays records={data.records} weather={data.weather} />
             </div>
 
-            <SeasonalComparison records={data.records} />
+            <SeasonalComparison records={data.records} weather={data.weather} />
 
-            <UsagePatterns records={data.records} />
+            <UsagePatterns records={data.records} weather={data.weather} />
+
+            {nerdMode && <StatisticalInsights records={data.records} weather={data.weather} />}
 
             <MonthlyChart monthlyStats={data.monthlyStats} />
           </div>

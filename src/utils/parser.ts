@@ -11,6 +11,35 @@ interface RawRow {
   NOTES?: string;
 }
 
+export interface CSVMetadata {
+  name?: string;
+  address?: string;
+  accountNumber?: string;
+  service?: string;
+}
+
+function extractMetadata(text: string): CSVMetadata {
+  const lines = text.split('\n');
+  const metadata: CSVMetadata = {};
+  
+  for (const line of lines) {
+    if (line.startsWith('TYPE,')) break; // Stop at data header
+    
+    if (line.startsWith('Name,')) {
+      metadata.name = line.split(',')[1]?.trim();
+    } else if (line.startsWith('Address,')) {
+      // Address may have commas, so take everything after "Address,"
+      metadata.address = line.replace(/^Address,\s*"?/, '').replace(/"?\s*$/, '');
+    } else if (line.startsWith('Account Number,')) {
+      metadata.accountNumber = line.split(',')[1]?.trim();
+    } else if (line.startsWith('Service,')) {
+      metadata.service = line.split(',')[1]?.trim();
+    }
+  }
+  
+  return metadata;
+}
+
 function preprocessCSV(text: string): string {
   const lines = text.split('\n');
   // Find the line that starts with TYPE (the actual header row)
@@ -27,6 +56,11 @@ function preprocessCSV(text: string): string {
     return text; // Return original if no header found
   }
   return lines.slice(headerIndex).join('\n');
+}
+
+export interface ParseResult {
+  records: UsageRecord[];
+  metadata: CSVMetadata;
 }
 
 export function parseCSV(file: File): Promise<UsageRecord[]> {
@@ -51,6 +85,38 @@ export function parseCSV(file: File): Promise<UsageRecord[]> {
               notes: row.NOTES,
             }));
           resolve(records);
+        },
+        error: (error: Error) => reject(error),
+      });
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
+}
+
+export function parseCSVWithMetadata(file: File): Promise<ParseResult> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const metadata = extractMetadata(text);
+      const processedText = preprocessCSV(text);
+      
+      Papa.parse<RawRow>(processedText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const records: UsageRecord[] = results.data
+            .filter((row) => row.TYPE === 'Electric usage')
+            .map((row) => ({
+              type: row.TYPE,
+              date: row.DATE,
+              startTime: row['START TIME'],
+              endTime: row['END TIME'],
+              usage: parseFloat(row['USAGE (kWh)']) || 0,
+              notes: row.NOTES,
+            }));
+          resolve({ records, metadata });
         },
         error: (error: Error) => reject(error),
       });
