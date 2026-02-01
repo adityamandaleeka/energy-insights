@@ -182,15 +182,16 @@ function App() {
               <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
                 Puget Sound Energy is rolling out <strong>Time-of-Use (TOU)</strong> rate plans that charge different prices based on when you use electricity. 
                 Peak hours (weekday mornings and evenings) cost more, while off-peak hours cost less. 
-                TOU pricing can save you money if you shift usage to off-peak times—and helps reduce strain on the electrical grid when demand is highest.
+                TOU pricing can save you money if you shift usage to off-peak times, and helps reduce strain on the electrical grid when demand is highest.
                 This tool analyzes your actual usage patterns to show you how TOU would affect your bills.
               </p>
             </div>
 
-            {/* Upload option - primary */}
+            {/* Analyze data - primary */}
             <div className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200 dark:border-violet-800 rounded-lg mb-6">
-              <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Upload your data</h3>
-              <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">Get personalized results with your actual PSE usage</p>
+              <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Analyze your data</h3>
+              <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Get personalized results with your actual PSE usage</p>
+              <p className="text-xs text-stone-500 dark:text-stone-500 mb-4">Your data stays on your device and is never sent to a server</p>
               <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
             </div>
               
@@ -242,7 +243,7 @@ function App() {
                     Viewing sample: <strong>{DEMO_PERSONAS.find(p => p.id === data.demoPersona)?.name}</strong>
                   </p>
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                    Upload your own PSE data for accurate results
+                    Use your own PSE data for accurate results
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -259,7 +260,7 @@ function App() {
                     onClick={handleReset}
                     className="text-xs text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
                   >
-                    Upload data
+                    Use your data
                   </button>
                 </div>
               </div>
@@ -285,7 +286,7 @@ function App() {
                   onClick={handleReset}
                   className="text-sm text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 underline underline-offset-2"
                 >
-                  Upload different file
+                  Analyze different file
                 </button>
               )}
             </div>
