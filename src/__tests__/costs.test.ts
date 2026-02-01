@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { 
   calculateFlatRateCost, 
-  BASIC_CHARGE, 
-  FLAT_RATE,
+  BASIC_CHARGE,
   FLAT_EFFECTIVE_TIER1,
   FLAT_EFFECTIVE_TIER2,
   TOU_RATE,

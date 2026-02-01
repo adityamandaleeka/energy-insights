@@ -64,7 +64,9 @@ export function calculateDailyUsage(records: UsageRecord[]): DailyUsage[] {
   const dailyMap = new Map<string, DailyUsage>();
 
   for (const record of records) {
-    const date = new Date(record.date);
+    // Parse date as local time (avoid UTC timezone shift)
+    const [year, month, day] = record.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const hour = parseInt(record.startTime.split(':')[0], 10);
     const dayOfWeek = date.getDay();
     const isPeak = isPeakHour(hour, dayOfWeek);
@@ -91,7 +93,7 @@ export function calculateDailyUsage(records: UsageRecord[]): DailyUsage[] {
   }
 
   return Array.from(dailyMap.values()).sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => a.date.localeCompare(b.date)
   );
 }
 
@@ -99,8 +101,10 @@ export function calculateMonthlyStats(records: UsageRecord[]): MonthlyStats[] {
   const monthlyMap = new Map<string, { usage: number; peak: number; offPeak: number; touCost: number }>();
 
   for (const record of records) {
-    const date = new Date(record.date);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    // Parse date as local time (avoid UTC timezone shift)
+    const [year, month, day] = record.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
     const hour = parseInt(record.startTime.split(':')[0], 10);
     const dayOfWeek = date.getDay();
     const isPeak = isPeakHour(hour, dayOfWeek);
@@ -137,7 +141,9 @@ export function calculateHourlyAverages(records: UsageRecord[]): HourlyAverage[]
   const hourlyMap = new Map<string, { total: number; count: number }>();
 
   for (const record of records) {
-    const date = new Date(record.date);
+    // Parse date as local time (avoid UTC timezone shift)
+    const [year, month, day] = record.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const hour = parseInt(record.startTime.split(':')[0], 10);
     const weekday = date.getDay();
     const key = `${weekday}-${hour}`;
@@ -172,8 +178,10 @@ export function calculateTotalCosts(records: UsageRecord[]): AllPlanCosts {
   const monthlyMap = new Map<string, { usage: number; touCost: number; touSuperCost: number }>();
 
   for (const record of records) {
-    const date = new Date(record.date);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    // Parse date as local time (avoid UTC timezone shift)
+    const [year, month, day] = record.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
     const hour = parseInt(record.startTime.split(':')[0], 10);
     const touRate = getTouRate(date, hour);
     const touSuperRate = getTouSuperRate(date, hour);
