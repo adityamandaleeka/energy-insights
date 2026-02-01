@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TOU_RATE } from '../utils/rates';
+import { TOU_RATE, TOU_SUPER_RATE } from '../utils/rates';
 import type { RatePlan } from './CostComparison';
 
 interface WhatIfCalculatorProps {
@@ -39,28 +39,54 @@ export function WhatIfCalculator({
   const winterShifted = shiftedKwh * winterRatio;
   const summerShifted = shiftedKwh * summerRatio;
 
-  // Original TOU cost using seasonal rates
+  // TOU (Schedule 307) calculations
   const originalTouEstimate = 
     (winterPeakUsage * TOU_RATE.peakRateWinter) + 
     (summerPeakUsage * TOU_RATE.peakRateSummer) + 
     (offPeakUsage * TOU_RATE.offPeakRate);
   
-  // New TOU cost after shifting
   const newTouCost = 
     ((winterPeakUsage - winterShifted) * TOU_RATE.peakRateWinter) + 
     ((summerPeakUsage - summerShifted) * TOU_RATE.peakRateSummer) + 
     (newOffPeakUsage * TOU_RATE.offPeakRate);
   
-  const additionalSavings = originalTouEstimate - newTouCost;
+  const touAdditionalSavings = originalTouEstimate - newTouCost;
 
-  // Calculate savings vs current plan (not always flat)
-  const totalSavingsForPeriod = (currentCost - touCost) + additionalSavings;
-  const monthlySavings = totalSavingsForPeriod / monthCount;
-  const yearlySavings = monthlySavings * 12;
+  // TOU Super (Schedule 327) calculations - assume shifted usage goes to super off-peak
+  const originalTouSuperEstimate = 
+    (winterPeakUsage * TOU_SUPER_RATE.peakRateWinter) + 
+    (summerPeakUsage * TOU_SUPER_RATE.peakRateSummer) + 
+    (offPeakUsage * TOU_SUPER_RATE.offPeakRate);
+  
+  const newTouSuperCost = 
+    ((winterPeakUsage - winterShifted) * TOU_SUPER_RATE.peakRateWinter) + 
+    ((summerPeakUsage - summerShifted) * TOU_SUPER_RATE.peakRateSummer) + 
+    (offPeakUsage * TOU_SUPER_RATE.offPeakRate) +
+    (shiftedKwh * TOU_SUPER_RATE.superOffPeakRate); // Shifted goes to super off-peak
+  
+  const touSuperAdditionalSavings = originalTouSuperEstimate - newTouSuperCost;
+
+  // Calculate savings vs current plan
+  const touTotalSavings = (currentCost - touCost) + touAdditionalSavings;
+  const touSuperTotalSavings = (currentCost - touSuperCost) + touSuperAdditionalSavings;
+  
+  const touYearlySavings = (touTotalSavings / monthCount) * 12;
+  const touSuperYearlySavings = (touSuperTotalSavings / monthCount) * 12;
 
   // If already on TOU, just show shift savings
   const isOnTou = currentPlan === 'tou' || currentPlan === 'touSuper';
-  const shiftOnlySavings = (additionalSavings / monthCount) * 12;
+  const shiftOnlySavings = (touAdditionalSavings / monthCount) * 12;
+
+  const formatSavings = (amount: number) => {
+    if (amount >= 0) {
+      return { text: `$${amount.toFixed(2)}`, positive: true };
+    } else {
+      return { text: `+$${Math.abs(amount).toFixed(2)}`, positive: false };
+    }
+  };
+
+  const touDisplay = formatSavings(touYearlySavings);
+  const touSuperDisplay = formatSavings(touSuperYearlySavings);
 
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
@@ -99,20 +125,44 @@ export function WhatIfCalculator({
           </div>
         )
       ) : (
-        // On flat rate - show TOU switch + shift savings
-        yearlySavings >= 0 ? (
-          <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
-            <p className="text-xs text-teal-600 dark:text-teal-400">Potential savings switching to TOU + shifting {shiftPercent}%</p>
-            <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${yearlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
-            <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${monthlySavings.toFixed(2)}/mo</p>
+        // On flat rate - show both TOU options
+        <div className="space-y-3">
+          <div className={`rounded p-4 ${touDisplay.positive ? 'bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800' : 'bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800'}`}>
+            <div className="flex justify-between items-start">
+              <div>
+                <p className={`text-xs ${touDisplay.positive ? 'text-teal-600 dark:text-teal-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                  Time-of-Use (Schedule 307)
+                </p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Peak/off-peak pricing</p>
+              </div>
+              <div className="text-right">
+                <p className={`text-xl font-semibold ${touDisplay.positive ? 'text-teal-700 dark:text-teal-300' : 'text-orange-700 dark:text-orange-300'}`}>
+                  {touDisplay.text}<span className="text-sm font-normal">/yr</span>
+                </p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded p-4">
-            <p className="text-xs text-orange-600 dark:text-orange-400">TOU would cost more</p>
-            <p className="text-2xl font-semibold text-orange-700 dark:text-orange-300">+${Math.abs(yearlySavings).toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
-            <p className="text-xs text-orange-600 dark:text-orange-500 mt-1">Your current plan is better for your usage pattern</p>
+          
+          <div className={`rounded p-4 ${touSuperDisplay.positive ? 'bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800' : 'bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800'}`}>
+            <div className="flex justify-between items-start">
+              <div>
+                <p className={`text-xs ${touSuperDisplay.positive ? 'text-teal-600 dark:text-teal-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                  TOU + Super Off-Peak (Schedule 327)
+                </p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Lowest rates 11pm–7am</p>
+              </div>
+              <div className="text-right">
+                <p className={`text-xl font-semibold ${touSuperDisplay.positive ? 'text-teal-700 dark:text-teal-300' : 'text-orange-700 dark:text-orange-300'}`}>
+                  {touSuperDisplay.text}<span className="text-sm font-normal">/yr</span>
+                </p>
+              </div>
+            </div>
           </div>
-        )
+          
+          <p className="text-xs text-stone-400 dark:text-stone-500 text-center">
+            {touDisplay.positive || touSuperDisplay.positive ? 'Savings' : 'Additional cost'} vs your current plan with {shiftPercent}% shift
+          </p>
+        </div>
       )}
 
       <details className="mt-4 text-sm">
