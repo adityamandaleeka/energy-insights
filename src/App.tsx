@@ -6,6 +6,9 @@ import { UsageHeatmap } from './components/UsageHeatmap';
 import { MonthlyChart } from './components/MonthlyChart';
 import { PeakBreakdown } from './components/PeakBreakdown';
 import { WhatIfCalculator } from './components/WhatIfCalculator';
+import { WeekdayComparison } from './components/WeekdayComparison';
+import { HighUsageDays } from './components/HighUsageDays';
+import { SeasonalComparison } from './components/SeasonalComparison';
 import type { UsageRecord, MonthlyStats, HourlyAverage } from './types';
 import {
   parseCSV,
@@ -349,6 +352,13 @@ function App() {
             </div>
 
             <UsageHeatmap hourlyAverages={data.hourlyAverages} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <WeekdayComparison records={data.records} />
+              <HighUsageDays records={data.records} />
+            </div>
+
+            <SeasonalComparison records={data.records} />
 
             <MonthlyChart monthlyStats={data.monthlyStats} />
           </div>

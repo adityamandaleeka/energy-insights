@@ -107,12 +107,25 @@ function generateFamilyData(): UsageRecord[] {
     return 1;
   };
 
+  // Seed for reproducible but varied daily patterns
+  let seed = 12345;
+  const seededRandom = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+
   const currentDate = new Date(startDate);
   while (currentDate <= endDate) {
     const month = currentDate.getMonth();
     const dayOfWeek = currentDate.getDay();
     const dateStr = currentDate.toISOString().split('T')[0];
     const seasonalMult = getSeasonalMultiplier(month);
+    
+    // Daily variation factor - some days are busier than others
+    // Creates high-usage days (laundry day, guests, etc.)
+    const dailyVariation = 0.7 + seededRandom() * 0.8; // 0.7 to 1.5
+    const isHighUsageDay = seededRandom() > 0.85; // ~15% of days are high usage
+    const highUsageMult = isHighUsageDay ? 1.5 + seededRandom() * 0.5 : 1;
 
     for (let hour = 0; hour < 24; hour++) {
       const baseUsage = hourlyPattern[hour];
@@ -124,8 +137,8 @@ function generateFamilyData(): UsageRecord[] {
         const endMinute = minute + 14;
         const endTime = `${hour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
         
-        const randomFactor = 0.7 + Math.random() * 0.6;
-        const usage = Math.round(baseUsage * seasonalMult * weekendMult * randomFactor * 100) / 100;
+        const randomFactor = 0.7 + seededRandom() * 0.6;
+        const usage = Math.round(baseUsage * seasonalMult * weekendMult * dailyVariation * highUsageMult * randomFactor * 100) / 100;
         
         records.push({
           type: 'Electric usage',
