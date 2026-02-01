@@ -52,41 +52,66 @@ export function WhatIfCalculator({
   
   const touAdditionalSavings = originalTouEstimate - newTouCost;
 
-  // TOU Super (Schedule 327) calculations - assume shifted usage goes to super off-peak
+  // TOU Super (Schedule 327) calculations - show range based on where shifted usage goes
   const originalTouSuperEstimate = 
     (winterPeakUsage * TOU_SUPER_RATE.peakRateWinter) + 
     (summerPeakUsage * TOU_SUPER_RATE.peakRateSummer) + 
     (offPeakUsage * TOU_SUPER_RATE.offPeakRate);
+
+  // Min savings: all shifted to off-peak (not super off-peak)
+  const newTouSuperCostMin = 
+    ((winterPeakUsage - winterShifted) * TOU_SUPER_RATE.peakRateWinter) + 
+    ((summerPeakUsage - summerShifted) * TOU_SUPER_RATE.peakRateSummer) + 
+    ((offPeakUsage + shiftedKwh) * TOU_SUPER_RATE.offPeakRate);
   
-  const newTouSuperCost = 
+  // Max savings: all shifted to super off-peak
+  const newTouSuperCostMax = 
     ((winterPeakUsage - winterShifted) * TOU_SUPER_RATE.peakRateWinter) + 
     ((summerPeakUsage - summerShifted) * TOU_SUPER_RATE.peakRateSummer) + 
     (offPeakUsage * TOU_SUPER_RATE.offPeakRate) +
-    (shiftedKwh * TOU_SUPER_RATE.superOffPeakRate); // Shifted goes to super off-peak
+    (shiftedKwh * TOU_SUPER_RATE.superOffPeakRate);
   
-  const touSuperAdditionalSavings = originalTouSuperEstimate - newTouSuperCost;
+  const touSuperAdditionalSavingsMin = originalTouSuperEstimate - newTouSuperCostMin;
+  const touSuperAdditionalSavingsMax = originalTouSuperEstimate - newTouSuperCostMax;
 
   // Calculate savings vs current plan
   const touTotalSavings = (currentCost - touCost) + touAdditionalSavings;
-  const touSuperTotalSavings = (currentCost - touSuperCost) + touSuperAdditionalSavings;
+  const touSuperTotalSavingsMin = (currentCost - touSuperCost) + touSuperAdditionalSavingsMin;
+  const touSuperTotalSavingsMax = (currentCost - touSuperCost) + touSuperAdditionalSavingsMax;
   
   const touYearlySavings = (touTotalSavings / monthCount) * 12;
-  const touSuperYearlySavings = (touSuperTotalSavings / monthCount) * 12;
+  const touSuperYearlySavingsMin = (touSuperTotalSavingsMin / monthCount) * 12;
+  const touSuperYearlySavingsMax = (touSuperTotalSavingsMax / monthCount) * 12;
 
-  // If already on TOU, just show shift savings
-  const isOnTou = currentPlan === 'tou' || currentPlan === 'touSuper';
-  const shiftOnlySavings = (touAdditionalSavings / monthCount) * 12;
+  // If already on TOU, calculate shift savings based on current plan
+  const isOnTou = currentPlan === 'tou';
+  const isOnTouSuper = currentPlan === 'touSuper';
+  const shiftOnlySavingsTou = (touAdditionalSavings / monthCount) * 12;
+  const shiftOnlySavingsSuperMin = (touSuperAdditionalSavingsMin / monthCount) * 12;
+  const shiftOnlySavingsSuperMax = (touSuperAdditionalSavingsMax / monthCount) * 12;
 
   const formatSavings = (amount: number) => {
     if (amount >= 0) {
-      return { text: `$${amount.toFixed(2)}`, positive: true };
+      return { text: `$${amount.toFixed(0)}`, positive: true };
     } else {
-      return { text: `+$${Math.abs(amount).toFixed(2)}`, positive: false };
+      return { text: `+$${Math.abs(amount).toFixed(0)}`, positive: false };
+    }
+  };
+
+  const formatRange = (min: number, max: number) => {
+    const minPos = min >= 0;
+    const maxPos = max >= 0;
+    if (minPos && maxPos) {
+      return { text: `$${min.toFixed(0)} – $${max.toFixed(0)}`, positive: true };
+    } else if (!minPos && !maxPos) {
+      return { text: `+$${Math.abs(max).toFixed(0)} – +$${Math.abs(min).toFixed(0)}`, positive: false };
+    } else {
+      return { text: `$${min.toFixed(0)} – $${max.toFixed(0)}`, positive: max > 0 };
     }
   };
 
   const touDisplay = formatSavings(touYearlySavings);
-  const touSuperDisplay = formatSavings(touSuperYearlySavings);
+  const touSuperDisplay = formatRange(touSuperYearlySavingsMin, touSuperYearlySavingsMax);
 
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
@@ -111,12 +136,30 @@ export function WhatIfCalculator({
       </div>
 
       {isOnTou ? (
-        // Already on TOU - just show shift savings
-        shiftOnlySavings >= 0 ? (
+        // On Schedule 307 TOU - show shift savings
+        shiftOnlySavingsTou >= 0 ? (
           <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
             <p className="text-xs text-teal-600 dark:text-teal-400">Savings from shifting {shiftPercent}% to off-peak</p>
-            <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${shiftOnlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
-            <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${(shiftOnlySavings / 12).toFixed(2)}/mo</p>
+            <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${shiftOnlySavingsTou.toFixed(0)}<span className="text-sm font-normal">/yr</span></p>
+            <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${(shiftOnlySavingsTou / 12).toFixed(0)}/mo</p>
+          </div>
+        ) : (
+          <div className="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded p-4">
+            <p className="text-xs text-stone-500 dark:text-stone-400">No additional savings</p>
+            <p className="text-sm text-stone-600 dark:text-stone-300 mt-1">Your usage is already well-distributed</p>
+          </div>
+        )
+      ) : isOnTouSuper ? (
+        // On Schedule 327 TOU Super - show range for off-peak vs super off-peak
+        shiftOnlySavingsSuperMax >= 0 ? (
+          <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
+            <p className="text-xs text-teal-600 dark:text-teal-400">Savings from shifting {shiftPercent}%</p>
+            <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">
+              ${shiftOnlySavingsSuperMin.toFixed(0)} – ${shiftOnlySavingsSuperMax.toFixed(0)}<span className="text-sm font-normal">/yr</span>
+            </p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-2">
+              Shift more usage to overnight (11pm-7am) to save the most
+            </p>
           </div>
         ) : (
           <div className="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded p-4">
@@ -149,7 +192,7 @@ export function WhatIfCalculator({
                 <p className={`text-xs ${touSuperDisplay.positive ? 'text-teal-600 dark:text-teal-400' : 'text-orange-600 dark:text-orange-400'}`}>
                   TOU + Super Off-Peak (Schedule 327)
                 </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Lowest rates 11pm–7am</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Shift more to overnight to save the most</p>
               </div>
               <div className="text-right">
                 <p className={`text-xl font-semibold ${touSuperDisplay.positive ? 'text-teal-700 dark:text-teal-300' : 'text-orange-700 dark:text-orange-300'}`}>
