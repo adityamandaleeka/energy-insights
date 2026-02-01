@@ -224,6 +224,11 @@ function App() {
               <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">Get personalized results with your actual PSE usage</p>
               <p className="text-xs text-stone-500 dark:text-stone-500 mb-4">Your data stays on your device and is never sent to a server</p>
               <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border-l-2 border-red-400 text-red-700 dark:text-red-400 text-sm rounded">
+                  {error}
+                </div>
+              )}
             </div>
               
             {/* Demo options */}
@@ -244,12 +249,6 @@ function App() {
                 <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Morning rush, evening family time</p>
               </button>
             </div>
-            
-            {error && (
-              <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border-l-2 border-red-400 text-red-700 dark:text-red-400 text-sm">
-                {error}
-              </div>
-            )}
             
             <div className="mt-10">
               <h2 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">How to get your data</h2>
