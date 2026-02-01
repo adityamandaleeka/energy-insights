@@ -47,11 +47,19 @@ export function WhatIfCalculator({ peakUsage, offPeakUsage, flatCost, touCost, m
         </div>
       </div>
 
-      <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
-        <p className="text-xs text-teal-600 dark:text-teal-400">Potential TOU savings with shift</p>
-        <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${yearlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
-        <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${monthlySavings.toFixed(2)}/mo</p>
-      </div>
+      {yearlySavings >= 0 ? (
+        <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded p-4">
+          <p className="text-xs text-teal-600 dark:text-teal-400">Potential TOU savings with shift</p>
+          <p className="text-2xl font-semibold text-teal-700 dark:text-teal-300">${yearlySavings.toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
+          <p className="text-xs text-teal-600 dark:text-teal-500 mt-1">${monthlySavings.toFixed(2)}/mo</p>
+        </div>
+      ) : (
+        <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded p-4">
+          <p className="text-xs text-orange-600 dark:text-orange-400">TOU would cost more</p>
+          <p className="text-2xl font-semibold text-orange-700 dark:text-orange-300">+${Math.abs(yearlySavings).toFixed(2)}<span className="text-sm font-normal">/yr</span></p>
+          <p className="text-xs text-orange-600 dark:text-orange-500 mt-1">Flat rate is better for your usage pattern</p>
+        </div>
+      )}
 
       <details className="mt-4 text-sm">
         <summary className="text-stone-500 dark:text-stone-400 cursor-pointer hover:text-stone-700 dark:hover:text-stone-300">Tips for shifting usage</summary>
