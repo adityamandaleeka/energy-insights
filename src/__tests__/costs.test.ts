@@ -59,12 +59,12 @@ describe('Rate value sanity checks', () => {
     expect(TOU_RATE.peakRateSummer).toBeLessThan(0.45);
   });
 
-  it('TOU off-peak rate is around $0.10-0.15/kWh', () => {
+  it('TOU off-peak electricity charge is around $0.10-0.15/kWh', () => {
     expect(TOU_RATE.offPeakRate).toBeGreaterThan(0.08);
     expect(TOU_RATE.offPeakRate).toBeLessThan(0.18);
   });
 
-  it('TOU Super off-peak rate is the lowest at $0.07-0.10/kWh', () => {
+  it('TOU Super off-peak electricity charge is the lowest at $0.07-0.10/kWh', () => {
     expect(TOU_SUPER_RATE.superOffPeakRate).toBeGreaterThan(0.05);
     expect(TOU_SUPER_RATE.superOffPeakRate).toBeLessThan(0.12);
   });

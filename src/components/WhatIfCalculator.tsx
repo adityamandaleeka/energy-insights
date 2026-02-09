@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TOU_RATE, TOU_SUPER_RATE } from '../utils/rates';
+import { TOU_RATE, TOU_SUPER_RATE, ADDITIONAL_PER_KWH } from '../utils/rates';
 import type { RatePlan } from './CostComparison';
 
 interface WhatIfCalculatorProps {
@@ -40,36 +40,39 @@ export function WhatIfCalculator({
   const summerShifted = shiftedKwh * summerRatio;
 
   // TOU (Schedule 307) calculations
-  const originalTouEstimate = 
-    (winterPeakUsage * TOU_RATE.peakRateWinter) + 
-    (summerPeakUsage * TOU_RATE.peakRateSummer) + 
-    (offPeakUsage * TOU_RATE.offPeakRate);
-  
-  const newTouCost = 
-    ((winterPeakUsage - winterShifted) * TOU_RATE.peakRateWinter) + 
-    ((summerPeakUsage - summerShifted) * TOU_RATE.peakRateSummer) + 
-    (newOffPeakUsage * TOU_RATE.offPeakRate);
+  // Note: ADDITIONAL_PER_KWH cancels out in savings (same per-kWh, total kWh unchanged)
+  const originalTouEstimate =
+    (winterPeakUsage * (TOU_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
+    (summerPeakUsage * (TOU_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
+    (offPeakUsage * (TOU_RATE.offPeakRate + ADDITIONAL_PER_KWH));
+
+  const newTouCost =
+    ((winterPeakUsage - winterShifted) * (TOU_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
+    ((summerPeakUsage - summerShifted) * (TOU_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
+    (newOffPeakUsage * (TOU_RATE.offPeakRate + ADDITIONAL_PER_KWH));
   
   const touAdditionalSavings = originalTouEstimate - newTouCost;
 
   // TOU Super (Schedule 327) calculations - show range based on where shifted usage goes
-  const originalTouSuperEstimate = 
-    (winterPeakUsage * TOU_SUPER_RATE.peakRateWinter) + 
-    (summerPeakUsage * TOU_SUPER_RATE.peakRateSummer) + 
-    (offPeakUsage * TOU_SUPER_RATE.offPeakRate);
+  // Use winter off-peak rate as conservative estimate (off-peak not split by season in props)
+  const touSuperOffPeak = TOU_SUPER_RATE.offPeakRateWinter + ADDITIONAL_PER_KWH;
+  const originalTouSuperEstimate =
+    (winterPeakUsage * (TOU_SUPER_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
+    (summerPeakUsage * (TOU_SUPER_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
+    (offPeakUsage * touSuperOffPeak);
 
   // Min savings: all shifted to off-peak (not super off-peak)
-  const newTouSuperCostMin = 
-    ((winterPeakUsage - winterShifted) * TOU_SUPER_RATE.peakRateWinter) + 
-    ((summerPeakUsage - summerShifted) * TOU_SUPER_RATE.peakRateSummer) + 
-    ((offPeakUsage + shiftedKwh) * TOU_SUPER_RATE.offPeakRate);
-  
+  const newTouSuperCostMin =
+    ((winterPeakUsage - winterShifted) * (TOU_SUPER_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
+    ((summerPeakUsage - summerShifted) * (TOU_SUPER_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
+    ((offPeakUsage + shiftedKwh) * touSuperOffPeak);
+
   // Max savings: all shifted to super off-peak
-  const newTouSuperCostMax = 
-    ((winterPeakUsage - winterShifted) * TOU_SUPER_RATE.peakRateWinter) + 
-    ((summerPeakUsage - summerShifted) * TOU_SUPER_RATE.peakRateSummer) + 
-    (offPeakUsage * TOU_SUPER_RATE.offPeakRate) +
-    (shiftedKwh * TOU_SUPER_RATE.superOffPeakRate);
+  const newTouSuperCostMax =
+    ((winterPeakUsage - winterShifted) * (TOU_SUPER_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
+    ((summerPeakUsage - summerShifted) * (TOU_SUPER_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
+    (offPeakUsage * touSuperOffPeak) +
+    (shiftedKwh * (TOU_SUPER_RATE.superOffPeakRate + ADDITIONAL_PER_KWH));
   
   const touSuperAdditionalSavingsMin = originalTouSuperEstimate - newTouSuperCostMin;
   const touSuperAdditionalSavingsMax = originalTouSuperEstimate - newTouSuperCostMax;

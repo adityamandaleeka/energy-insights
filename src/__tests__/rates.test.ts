@@ -94,8 +94,10 @@ describe('Rate constants', () => {
   });
 
   it('has valid TOU Super rates with super off-peak lowest', () => {
-    expect(TOU_SUPER_RATE.superOffPeakRate).toBeLessThan(TOU_SUPER_RATE.offPeakRate);
-    expect(TOU_SUPER_RATE.offPeakRate).toBeLessThan(TOU_SUPER_RATE.peakRateSummer);
+    expect(TOU_SUPER_RATE.superOffPeakRate).toBeLessThan(TOU_SUPER_RATE.offPeakRateWinter);
+    expect(TOU_SUPER_RATE.superOffPeakRate).toBeLessThan(TOU_SUPER_RATE.offPeakRateSummer);
+    expect(TOU_SUPER_RATE.offPeakRateWinter).toBeLessThan(TOU_SUPER_RATE.peakRateSummer);
+    expect(TOU_SUPER_RATE.offPeakRateSummer).toBeLessThan(TOU_SUPER_RATE.peakRateSummer);
     expect(TOU_SUPER_RATE.peakRateSummer).toBeLessThan(TOU_SUPER_RATE.peakRateWinter);
   });
 });

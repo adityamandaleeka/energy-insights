@@ -155,11 +155,11 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount, cu
           </div>
           <div>
             <p className="font-medium text-sm">Time-of-Use (Schedule 307)</p>
-            <p>Basic: $7.49/mo • Peak (Mon–Fri 7–10am, 5–8pm): $0.54 winter / $0.34 summer • Off-peak: $0.11</p>
+            <p>Basic: $7.49/mo • Peak (Mon–Fri 5–8pm, + 7–10am in winter): $0.58 winter / $0.38 summer • Off-peak: $0.15</p>
           </div>
           <div>
             <p className="font-medium text-sm">TOU + Super Off-Peak (Schedule 327)</p>
-            <p>Basic: $7.49/mo • Peak: $0.51 winter / $0.28 summer • Mid: $0.13 • Super off-peak (11pm–7am): $0.08</p>
+            <p>Basic: $7.49/mo • Peak: $0.55 winter / $0.32 summer • Mid: ~$0.17 • Super off-peak (11pm–7am): $0.12</p>
           </div>
         </div>
       </details>

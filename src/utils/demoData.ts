@@ -10,6 +10,16 @@ export interface DemoData {
   weather: DailyWeather[];
 }
 
+// Simple seeded random number generator (mulberry32)
+function createSeededRandom(seed: number) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
 export const DEMO_PERSONAS = [
   { 
     id: 'ev-wfh' as const, 
@@ -26,7 +36,7 @@ export const DEMO_PERSONAS = [
 ];
 
 // Generate synthetic weather data for Seattle area
-function generateWeather(startDate: Date, endDate: Date): DailyWeather[] {
+function generateWeather(startDate: Date, endDate: Date, random: () => number): DailyWeather[] {
   const weather: DailyWeather[] = [];
   const current = new Date(startDate);
   
@@ -36,10 +46,10 @@ function generateWeather(startDate: Date, endDate: Date): DailyWeather[] {
     // Seattle-like temperatures: cold Jan (~40°F), warm Jul (~75°F)
     // Use sine wave for seasonal variation
     const seasonalBase = 55 + 20 * Math.sin((dayOfYear - 100) * 2 * Math.PI / 365);
-    const dailyVariation = (Math.random() - 0.5) * 15; // +/- 7.5°F random
+    const dailyVariation = (random() - 0.5) * 15; // +/- 7.5°F random
     const tempMean = Math.round((seasonalBase + dailyVariation) * 10) / 10;
-    const tempMax = tempMean + 5 + Math.random() * 5;
-    const tempMin = tempMean - 5 - Math.random() * 5;
+    const tempMax = tempMean + 5 + random() * 5;
+    const tempMin = tempMean - 5 - random() * 5;
     
     weather.push({
       date: current.toISOString().split('T')[0],
@@ -55,7 +65,7 @@ function generateWeather(startDate: Date, endDate: Date): DailyWeather[] {
 }
 
 // EV owner who works from home - benefits from TOU, has heat pump
-function generateEvWfhData(weather: DailyWeather[]): UsageRecord[] {
+function generateEvWfhData(weather: DailyWeather[], random: () => number): UsageRecord[] {
   const records: UsageRecord[] = [];
   
   // Pattern: EV charging overnight, WFH with midday usage, low peak usage
@@ -99,7 +109,7 @@ function generateEvWfhData(weather: DailyWeather[]): UsageRecord[] {
         const endMinute = minute + 14;
         const endTime = `${hour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
         
-        const randomFactor = 0.7 + Math.random() * 0.6;
+        const randomFactor = 0.7 + random() * 0.6;
         const usage = Math.round(baseUsage * tempMult * weekendMult * randomFactor * 100) / 100;
         
         records.push({
@@ -117,7 +127,7 @@ function generateEvWfhData(weather: DailyWeather[]): UsageRecord[] {
 }
 
 // Family with school-age kids - electric baseboard heat (high temp sensitivity)
-function generateFamilyData(weather: DailyWeather[]): UsageRecord[] {
+function generateFamilyData(weather: DailyWeather[], random: () => number): UsageRecord[] {
   const records: UsageRecord[] = [];
   
   // Pattern: morning rush getting kids ready, empty during day, heavy evening
@@ -147,20 +157,14 @@ function generateFamilyData(weather: DailyWeather[]): UsageRecord[] {
     return 1.0;
   };
 
-  let seed = 12345;
-  const seededRandom = () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    return seed / 0x7fffffff;
-  };
-
   for (const w of weather) {
     const date = new Date(w.date);
     const dayOfWeek = date.getDay();
     const tempMult = getTempMultiplier(w.tempMean);
     
-    const dailyVariation = 0.7 + seededRandom() * 0.8;
-    const isHighUsageDay = seededRandom() > 0.85;
-    const highUsageMult = isHighUsageDay ? 1.5 + seededRandom() * 0.5 : 1;
+    const dailyVariation = 0.7 + random() * 0.8;
+    const isHighUsageDay = random() > 0.85;
+    const highUsageMult = isHighUsageDay ? 1.5 + random() * 0.5 : 1;
 
     for (let hour = 0; hour < 24; hour++) {
       const baseUsage = hourlyPattern[hour];
@@ -172,7 +176,7 @@ function generateFamilyData(weather: DailyWeather[]): UsageRecord[] {
         const endMinute = minute + 14;
         const endTime = `${hour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
         
-        const randomFactor = 0.7 + seededRandom() * 0.6;
+        const randomFactor = 0.7 + random() * 0.6;
         const usage = Math.round(baseUsage * tempMult * weekendMult * dailyVariation * highUsageMult * randomFactor * 100) / 100;
         
         records.push({
@@ -190,9 +194,13 @@ function generateFamilyData(weather: DailyWeather[]): UsageRecord[] {
 }
 
 export function generateDemoData(persona: DemoPersona = 'ev-wfh'): DemoData {
+  // Use different seeds for each persona so they're distinct but consistent
+  const seed = persona === 'ev-wfh' ? 42 : 123;
+  const random = createSeededRandom(seed);
+  
   const startDate = new Date('2025-01-01');
   const endDate = new Date('2025-12-31');
-  const weather = generateWeather(startDate, endDate);
+  const weather = generateWeather(startDate, endDate, random);
   
   const metadata: CSVMetadata = persona === 'ev-wfh' 
     ? {
@@ -209,8 +217,8 @@ export function generateDemoData(persona: DemoPersona = 'ev-wfh'): DemoData {
       };
   
   const records = persona === 'family' 
-    ? generateFamilyData(weather)
-    : generateEvWfhData(weather);
+    ? generateFamilyData(weather, random)
+    : generateEvWfhData(weather, random);
   
   return { records, metadata, weather };
 }
