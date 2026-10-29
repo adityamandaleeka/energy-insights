@@ -73,7 +73,7 @@ export function UsageHeatmap({ hourlyAverages }: UsageHeatmapProps) {
       </div>
 
       <div className="flex items-center justify-between mt-3 text-xs text-stone-400 dark:text-stone-500">
-        <p>Peak TOU hours: Mon–Fri 7–10am & 5–8pm</p>
+        <p>Sch 327 peak: Mon–Fri 7–10am &amp; 5–8pm, excluding PSE holidays</p>
         <div className="flex items-center gap-2">
           <span>Less</span>
           <div className="flex gap-px">

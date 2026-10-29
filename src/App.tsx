@@ -12,34 +12,20 @@ import { SeasonalComparison } from './components/SeasonalComparison';
 import { UsagePatterns } from './components/UsagePatterns';
 import { StatisticalInsights } from './components/StatisticalInsights';
 import { UsageComparisons } from './components/UsageComparisons';
-import type { UsageRecord, MonthlyStats, HourlyAverage } from './types';
 import {
   parseCSVWithMetadata,
-  calculateMonthlyStats,
-  calculateHourlyAverages,
-  calculateTotalCosts,
+  analyzeUsageRecords,
 } from './utils/parser';
 import type { CSVMetadata } from './utils/parser';
-import { RATE_EFFECTIVE_DATE, RATE_SOURCE_URL, isWinterMonth } from './utils/rates';
+import { RATE_EFFECTIVE_DATE, RATE_SOURCE_URL } from './utils/rates';
 import { generateDemoData, DEMO_PERSONAS } from './utils/demoData';
 import type { DemoPersona } from './utils/demoData';
 import { extractZipCode, fetchWeatherData } from './utils/weather';
 import type { DailyWeather } from './utils/weather';
 
-interface AnalysisData {
-  records: UsageRecord[];
-  monthlyStats: MonthlyStats[];
-  hourlyAverages: HourlyAverage[];
+interface AnalysisData extends ReturnType<typeof analyzeUsageRecords> {
   isDemo?: boolean;
   demoPersona?: DemoPersona;
-  flatCost: number;
-  touCost: number;
-  touSuperCost: number;
-  totalUsage: number;
-  peakUsage: number;
-  offPeakUsage: number;
-  winterPeakUsage: number;
-  summerPeakUsage: number;
   metadata?: CSVMetadata;
   weather?: DailyWeather[];
 }
@@ -51,11 +37,10 @@ function loadCachedData(): AnalysisData | null {
     const cached = localStorage.getItem(STORAGE_KEY);
     if (cached) {
       const data: AnalysisData = JSON.parse(cached);
-      // Reprice saved usage so a rate update cannot leave stale bill estimates.
+      // Rebuild derived data after rate or tariff-classification changes.
       return {
         ...data,
-        monthlyStats: calculateMonthlyStats(data.records),
-        ...calculateTotalCosts(data.records),
+        ...analyzeUsageRecords(data.records),
       };
     }
   } catch (error) {
@@ -111,25 +96,7 @@ function App() {
         throw new Error('No electric usage data found in this file');
       }
 
-      const monthlyStats = calculateMonthlyStats(records);
-      const hourlyAverages = calculateHourlyAverages(records);
-      const { flatCost, touCost, touSuperCost } = calculateTotalCosts(records);
-
-      const totalUsage = records.reduce((sum, r) => sum + r.usage, 0);
-      const peakUsage = monthlyStats.reduce((sum, m) => sum + m.peakUsage, 0);
-      const offPeakUsage = monthlyStats.reduce((sum, m) => sum + m.offPeakUsage, 0);
-      
-      // Calculate seasonal peak usage for accurate What If calculations
-      let winterPeakUsage = 0;
-      let summerPeakUsage = 0;
-      monthlyStats.forEach(m => {
-        const monthNum = parseInt(m.month.split('-')[1], 10);
-        if (isWinterMonth(monthNum)) {
-          winterPeakUsage += m.peakUsage;
-        } else {
-          summerPeakUsage += m.peakUsage;
-        }
-      });
+      const analysis = analyzeUsageRecords(records);
 
       // Fetch weather data if we have an address with zip code
       let weather: DailyWeather[] | undefined;
@@ -148,17 +115,7 @@ function App() {
       }
 
       setData({
-        records,
-        monthlyStats,
-        hourlyAverages,
-        flatCost,
-        touCost,
-        touSuperCost,
-        totalUsage,
-        peakUsage,
-        offPeakUsage,
-        winterPeakUsage,
-        summerPeakUsage,
+        ...analysis,
         metadata,
         weather,
       });
@@ -173,37 +130,8 @@ function App() {
   const handleDemo = (persona: DemoPersona) => {
     const demoData = generateDemoData(persona);
     const { records, metadata, weather } = demoData;
-    const monthlyStats = calculateMonthlyStats(records);
-    const hourlyAverages = calculateHourlyAverages(records);
-    const { flatCost, touCost, touSuperCost } = calculateTotalCosts(records);
-
-    const totalUsage = records.reduce((sum, r) => sum + r.usage, 0);
-    const peakUsage = monthlyStats.reduce((sum, m) => sum + m.peakUsage, 0);
-    const offPeakUsage = monthlyStats.reduce((sum, m) => sum + m.offPeakUsage, 0);
-    
-    let winterPeakUsage = 0;
-    let summerPeakUsage = 0;
-    monthlyStats.forEach(m => {
-      const monthNum = parseInt(m.month.split('-')[1], 10);
-      if (isWinterMonth(monthNum)) {
-        winterPeakUsage += m.peakUsage;
-      } else {
-        summerPeakUsage += m.peakUsage;
-      }
-    });
-
     setData({
-      records,
-      monthlyStats,
-      hourlyAverages,
-      flatCost,
-      touCost,
-      touSuperCost,
-      totalUsage,
-      peakUsage,
-      offPeakUsage,
-      winterPeakUsage,
-      summerPeakUsage,
+      ...analyzeUsageRecords(records),
       isDemo: true,
       demoPersona: persona,
       metadata,
@@ -432,10 +360,7 @@ function App() {
                 offPeakUsage={data.offPeakUsage}
               />
               <WhatIfCalculator
-                peakUsage={data.peakUsage}
-                offPeakUsage={data.offPeakUsage}
-                winterPeakUsage={data.winterPeakUsage}
-                summerPeakUsage={data.summerPeakUsage}
+                peakUsageByPlan={data.peakUsageByPlan}
                 flatCost={data.flatCost}
                 touCost={data.touCost}
                 touSuperCost={data.touSuperCost}

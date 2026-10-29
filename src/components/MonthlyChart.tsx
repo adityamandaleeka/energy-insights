@@ -33,7 +33,7 @@ export function MonthlyChart({ monthlyStats }: MonthlyChartProps) {
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
       <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">Monthly Usage</h2>
-      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Peak vs off-peak by month</p>
+      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Schedule 327 peak vs off-peak by month, excluding PSE holidays</p>
 
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">

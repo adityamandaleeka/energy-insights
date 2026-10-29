@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
-import type { UsageRecord, DailyUsage, MonthlyStats, HourlyAverage } from '../types';
-import { isPeakHour, getTouRate, getTouSuperRate, calculateFlatRateCost, BASIC_CHARGE } from './rates';
+import type { UsageRecord, DailyUsage, MonthlyStats, HourlyAverage, PeakUsageByPlan, TouPlan } from '../types';
+import { isPeakHour, isWinterMonth, getTouRate, getTouSuperRate, calculateFlatRateCost, BASIC_CHARGE } from './rates';
 
 interface RawRow {
   TYPE: string;
@@ -134,8 +134,7 @@ export function calculateDailyUsage(records: UsageRecord[]): DailyUsage[] {
     const [year, month, day] = record.date.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     const hour = parseInt(record.startTime.split(':')[0], 10);
-    const dayOfWeek = date.getDay();
-    const isPeak = isPeakHour(hour, dayOfWeek);
+    const isPeak = isPeakHour(date, hour, 'touSuper');
 
     if (!dailyMap.has(record.date)) {
       dailyMap.set(record.date, {
@@ -172,8 +171,7 @@ export function calculateMonthlyStats(records: UsageRecord[]): MonthlyStats[] {
     const date = new Date(year, month - 1, day);
     const monthKey = `${year}-${String(month).padStart(2, '0')}`;
     const hour = parseInt(record.startTime.split(':')[0], 10);
-    const dayOfWeek = date.getDay();
-    const isPeak = isPeakHour(hour, dayOfWeek);
+    const isPeak = isPeakHour(date, hour, 'touSuper');
     const touRate = getTouRate(date, hour);
 
     if (!monthlyMap.has(monthKey)) {
@@ -273,4 +271,41 @@ export function calculateTotalCosts(records: UsageRecord[]): AllPlanCosts {
   }
 
   return { flatCost, touCost, touSuperCost };
+}
+
+export function calculatePeakUsageByPlan(records: UsageRecord[]): PeakUsageByPlan {
+  const usage: PeakUsageByPlan = {
+    tou: { winter: 0, summer: 0 },
+    touSuper: { winter: 0, summer: 0 },
+  };
+  const plans: TouPlan[] = ['tou', 'touSuper'];
+
+  for (const record of records) {
+    const [year, month, day] = record.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const hour = parseInt(record.startTime.split(':')[0], 10);
+    const season = isWinterMonth(date.getMonth()) ? 'winter' : 'summer';
+
+    for (const plan of plans) {
+      if (isPeakHour(date, hour, plan)) {
+        usage[plan][season] += record.usage;
+      }
+    }
+  }
+
+  return usage;
+}
+
+export function analyzeUsageRecords(records: UsageRecord[]) {
+  const monthlyStats = calculateMonthlyStats(records);
+  return {
+    records,
+    monthlyStats,
+    hourlyAverages: calculateHourlyAverages(records),
+    ...calculateTotalCosts(records),
+    totalUsage: records.reduce((sum, record) => sum + record.usage, 0),
+    peakUsage: monthlyStats.reduce((sum, month) => sum + month.peakUsage, 0),
+    offPeakUsage: monthlyStats.reduce((sum, month) => sum + month.offPeakUsage, 0),
+    peakUsageByPlan: calculatePeakUsageByPlan(records),
+  };
 }

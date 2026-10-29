@@ -6,8 +6,9 @@ import {
   FLAT_EFFECTIVE_TIER2,
   TOU_RATE,
   TOU_SUPER_RATE,
+  calculateShiftSavings,
 } from '../utils/rates';
-import { calculateTotalCosts } from '../utils/parser';
+import { analyzeUsageRecords, calculatePeakUsageByPlan, calculateTotalCosts } from '../utils/parser';
 import type { UsageRecord } from '../types';
 
 describe('Flat rate cost calculation', () => {
@@ -111,5 +112,121 @@ describe('October 2026 bill estimates', () => {
     expect(costs.flatCost).toBeCloseTo(325.3372, 6);
     expect(costs.touCost).toBeCloseTo(306.5536, 6);
     expect(costs.touSuperCost).toBeCloseTo(293.9256, 6);
+  });
+});
+
+function usageRecord(date: string, hour: number, usage = 100): UsageRecord {
+  const time = String(hour).padStart(2, '0');
+  return { type: 'Electric usage', date, startTime: `${time}:00`, endTime: `${time}:15`, usage };
+}
+
+describe('Plan-specific seasonal peak usage', () => {
+  it('classifies March and September correctly for each plan', () => {
+    const records = [
+      usageRecord('2026-03-02', 8, 100),
+      usageRecord('2026-03-02', 18, 200),
+      usageRecord('2026-09-01', 8, 300),
+      usageRecord('2026-09-01', 18, 400),
+    ];
+    expect(calculatePeakUsageByPlan(records)).toEqual({
+      tou: { winter: 300, summer: 400 },
+      touSuper: { winter: 300, summer: 700 },
+    });
+  });
+
+  it.each([
+    { date: '2026-03-31', tou: { winter: 100, summer: 0 }, touSuper: { winter: 100, summer: 0 } },
+    { date: '2026-04-01', tou: { winter: 0, summer: 0 }, touSuper: { winter: 0, summer: 100 } },
+    { date: '2026-09-30', tou: { winter: 0, summer: 0 }, touSuper: { winter: 0, summer: 100 } },
+    { date: '2026-10-01', tou: { winter: 100, summer: 0 }, touSuper: { winter: 100, summer: 0 } },
+  ])('respects season boundaries on $date', ({ date, tou, touSuper }) => {
+    expect(calculatePeakUsageByPlan([usageRecord(date, 8)])).toEqual({ tou, touSuper });
+  });
+
+  it('excludes holidays, weekends and already off-peak readings from shiftable usage', () => {
+    const records = [
+      usageRecord('2026-01-19', 8),
+      usageRecord('2026-06-19', 18),
+      usageRecord('2026-11-27', 18),
+      usageRecord('2026-03-07', 8),
+      usageRecord('2026-03-02', 12),
+      usageRecord('2026-09-01', 23),
+    ];
+    expect(calculatePeakUsageByPlan(records)).toEqual({
+      tou: { winter: 0, summer: 0 },
+      touSuper: { winter: 0, summer: 0 },
+    });
+  });
+
+  it('rebuilds consistent costs and peak totals for all analysis entry points', () => {
+    const analysis = analyzeUsageRecords([
+      usageRecord('2026-11-26', 8),
+      usageRecord('2026-11-27', 18),
+      usageRecord('2026-11-30', 8),
+    ]);
+    expect(analysis.totalUsage).toBe(300);
+    expect(analysis.peakUsage).toBe(100);
+    expect(analysis.offPeakUsage).toBe(200);
+    expect(analysis.peakUsageByPlan).toEqual({
+      tou: { winter: 100, summer: 0 },
+      touSuper: { winter: 100, summer: 0 },
+    });
+    expect(analysis.flatCost).toBeCloseTo(64.2257, 6);
+    expect(analysis.touCost).toBeCloseTo(96.6302, 6);
+    expect(analysis.touSuperCost).toBeCloseTo(97.5214, 6);
+  });
+});
+
+describe('Load-shifting savings', () => {
+  it('does not claim Schedule 307 savings from summer morning usage', () => {
+    const usage = calculatePeakUsageByPlan([usageRecord('2026-09-01', 8)]);
+    const savings = calculateShiftSavings(usage, 20);
+    expect(savings.tou).toBe(0);
+    expect(savings.touSuperMin).toBeCloseTo(2.99568, 6);
+    expect(savings.touSuperMax).toBeCloseTo(3.92594, 6);
+  });
+
+  it('shifts each season to its own off-peak rate, preserving the overnight range', () => {
+    const usage = calculatePeakUsageByPlan([
+      usageRecord('2026-03-02', 8),
+      usageRecord('2026-09-01', 18),
+    ]);
+    const savings = calculateShiftSavings(usage, 20);
+    expect(savings.tou).toBeCloseTo(13.02474, 6);
+    expect(savings.touSuperMin).toBeCloseTo(10.52542, 6);
+    expect(savings.touSuperMax).toBeCloseTo(12.4866, 6);
+    expect(calculateShiftSavings(usage, 0)).toEqual({ tou: 0, touSuperMin: 0, touSuperMax: 0 });
+  });
+
+  it('matches the change in actual bills when half of peak usage moves within its season', () => {
+    const original = [
+      usageRecord('2026-03-02', 8),
+      usageRecord('2026-09-01', 18),
+      usageRecord('2026-09-01', 23, 1000),
+    ];
+    const shifted = [
+      usageRecord('2026-03-02', 8, 50),
+      usageRecord('2026-03-02', 12, 50),
+      usageRecord('2026-09-01', 18, 50),
+      usageRecord('2026-09-01', 12, 50),
+      usageRecord('2026-09-01', 23, 1000),
+    ];
+    const overnight = shifted.map(record => record.startTime === '12:00'
+      ? { ...record, startTime: '23:00', endTime: '23:15' }
+      : record);
+    const savings = calculateShiftSavings(calculatePeakUsageByPlan(original), 50);
+    const before = calculateTotalCosts(original);
+    const after = calculateTotalCosts(shifted);
+    const afterOvernight = calculateTotalCosts(overnight);
+    expect(before.flatCost).toBeCloseTo(after.flatCost, 6);
+    expect(before.touCost - after.touCost).toBeCloseTo(savings.tou, 6);
+    expect(before.touSuperCost - after.touSuperCost).toBeCloseTo(savings.touSuperMin, 6);
+    expect(before.touSuperCost - afterOvernight.touSuperCost).toBeCloseTo(savings.touSuperMax, 6);
+  });
+
+  it('returns zero for no peak usage, including an empty dataset', () => {
+    expect(calculateShiftSavings(calculatePeakUsageByPlan([]), 50)).toEqual({
+      tou: 0, touSuperMin: 0, touSuperMax: 0,
+    });
   });
 });

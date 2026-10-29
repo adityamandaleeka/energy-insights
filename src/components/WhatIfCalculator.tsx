@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { TOU_RATE, TOU_SUPER_RATE, ADDITIONAL_PER_KWH } from '../utils/rates';
+import { calculateShiftSavings } from '../utils/rates';
+import type { PeakUsageByPlan } from '../types';
 import type { RatePlan } from './CostComparison';
 
 interface WhatIfCalculatorProps {
-  peakUsage: number;
-  offPeakUsage: number;
-  winterPeakUsage: number;
-  summerPeakUsage: number;
+  peakUsageByPlan: PeakUsageByPlan;
   flatCost: number;
   touCost: number;
   touSuperCost: number;
@@ -15,10 +13,7 @@ interface WhatIfCalculatorProps {
 }
 
 export function WhatIfCalculator({ 
-  peakUsage, 
-  offPeakUsage, 
-  winterPeakUsage,
-  summerPeakUsage,
+  peakUsageByPlan,
   flatCost, 
   touCost, 
   touSuperCost, 
@@ -30,52 +25,11 @@ export function WhatIfCalculator({
   const costs = { flat: flatCost, tou: touCost, touSuper: touSuperCost };
   const currentCost = costs[currentPlan];
 
-  const shiftedKwh = (peakUsage * shiftPercent) / 100;
-  const newOffPeakUsage = offPeakUsage + shiftedKwh;
-
-  // Calculate shifted amounts proportionally by season
-  const winterRatio = peakUsage > 0 ? winterPeakUsage / peakUsage : 0.5;
-  const summerRatio = 1 - winterRatio;
-  const winterShifted = shiftedKwh * winterRatio;
-  const summerShifted = shiftedKwh * summerRatio;
-
-  // TOU (Schedule 307) calculations
-  // Note: ADDITIONAL_PER_KWH cancels out in savings (same per-kWh, total kWh unchanged)
-  const originalTouEstimate =
-    (winterPeakUsage * (TOU_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
-    (summerPeakUsage * (TOU_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
-    (offPeakUsage * (TOU_RATE.offPeakRate + ADDITIONAL_PER_KWH));
-
-  const newTouCost =
-    ((winterPeakUsage - winterShifted) * (TOU_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
-    ((summerPeakUsage - summerShifted) * (TOU_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
-    (newOffPeakUsage * (TOU_RATE.offPeakRate + ADDITIONAL_PER_KWH));
-  
-  const touAdditionalSavings = originalTouEstimate - newTouCost;
-
-  // TOU Super (Schedule 327) calculations - show range based on where shifted usage goes
-  // Use winter off-peak rate as conservative estimate (off-peak not split by season in props)
-  const touSuperOffPeak = TOU_SUPER_RATE.offPeakRateWinter + ADDITIONAL_PER_KWH;
-  const originalTouSuperEstimate =
-    (winterPeakUsage * (TOU_SUPER_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
-    (summerPeakUsage * (TOU_SUPER_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
-    (offPeakUsage * touSuperOffPeak);
-
-  // Min savings: all shifted to off-peak (not super off-peak)
-  const newTouSuperCostMin =
-    ((winterPeakUsage - winterShifted) * (TOU_SUPER_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
-    ((summerPeakUsage - summerShifted) * (TOU_SUPER_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
-    ((offPeakUsage + shiftedKwh) * touSuperOffPeak);
-
-  // Max savings: all shifted to super off-peak
-  const newTouSuperCostMax =
-    ((winterPeakUsage - winterShifted) * (TOU_SUPER_RATE.peakRateWinter + ADDITIONAL_PER_KWH)) +
-    ((summerPeakUsage - summerShifted) * (TOU_SUPER_RATE.peakRateSummer + ADDITIONAL_PER_KWH)) +
-    (offPeakUsage * touSuperOffPeak) +
-    (shiftedKwh * (TOU_SUPER_RATE.superOffPeakRate + ADDITIONAL_PER_KWH));
-  
-  const touSuperAdditionalSavingsMin = originalTouSuperEstimate - newTouSuperCostMin;
-  const touSuperAdditionalSavingsMax = originalTouSuperEstimate - newTouSuperCostMax;
+  const {
+    tou: touAdditionalSavings,
+    touSuperMin: touSuperAdditionalSavingsMin,
+    touSuperMax: touSuperAdditionalSavingsMax,
+  } = calculateShiftSavings(peakUsageByPlan, shiftPercent);
 
   // Calculate savings vs current plan
   const touTotalSavings = (currentCost - touCost) + touAdditionalSavings;
@@ -119,7 +73,9 @@ export function WhatIfCalculator({
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
       <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">What If</h2>
-      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Estimate savings from shifting usage</p>
+      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">
+        Uses each plan&apos;s peak hours. Shifted usage stays in the same season.
+      </p>
 
       <div className="mb-5">
         <label className="block text-xs text-stone-500 dark:text-stone-400 mb-2">

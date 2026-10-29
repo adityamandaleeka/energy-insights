@@ -18,7 +18,7 @@ export function PeakBreakdown({ peakUsage, offPeakUsage }: PeakBreakdownProps) {
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-6">
       <h2 className="text-sm font-medium text-stone-700 dark:text-stone-200 mb-1">Peak vs Off-Peak</h2>
-      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Usage distribution</p>
+      <p className="text-xs text-stone-400 dark:text-stone-500 mb-4">Schedule 327 peak periods, excluding PSE holidays</p>
 
       <div className="flex items-center gap-4">
         <div className="w-28 h-28">

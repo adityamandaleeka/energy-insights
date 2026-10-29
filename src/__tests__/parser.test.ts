@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import Papa from 'papaparse';
 import { SAMPLE_CSV, EXPECTED_RESULTS } from '../__fixtures__/sampleData';
-import { isPeakHour } from '../utils/rates';
+import { calculateDailyUsage, calculateMonthlyStats } from '../utils/parser';
 import type { UsageRecord } from '../types';
 
 // Helper to parse CSV string (mirrors parser.ts logic)
@@ -40,18 +40,10 @@ function calculateUsageBreakdown(records: UsageRecord[]) {
   let peakUsage = 0;
   let offPeakUsage = 0;
 
-  for (const record of records) {
-    const date = new Date(record.date);
-    const hour = parseInt(record.startTime.split(':')[0], 10);
-    const dayOfWeek = date.getDay();
-    const isPeak = isPeakHour(hour, dayOfWeek);
-
-    totalUsage += record.usage;
-    if (isPeak) {
-      peakUsage += record.usage;
-    } else {
-      offPeakUsage += record.usage;
-    }
+  for (const day of calculateDailyUsage(records)) {
+    totalUsage += day.totalUsage;
+    peakUsage += day.peakUsage;
+    offPeakUsage += day.offPeakUsage;
   }
 
   return {
@@ -117,5 +109,21 @@ describe('Regression snapshot', () => {
     
     // This test will fail if calculations change unexpectedly
     expect(breakdown).toEqual(EXPECTED_RESULTS);
+  });
+});
+
+describe('Date-aware usage classification', () => {
+  it('keeps weekends and PSE holidays out of daily and monthly peak totals', () => {
+    const records: UsageRecord[] = ['2026-11-01', '2026-11-02', '2026-11-27'].map(date => ({
+      type: 'Electric usage', date, startTime: '08:00', endTime: '08:15', usage: 10,
+    }));
+    const daily = calculateDailyUsage(records);
+    expect(daily.map(day => day.peakUsage)).toEqual([0, 10, 0]);
+    expect(daily.map(day => day.offPeakUsage)).toEqual([10, 0, 10]);
+    const [monthly] = calculateMonthlyStats(records);
+    expect(monthly.totalUsage).toBe(30);
+    expect(monthly.peakUsage).toBe(10);
+    expect(monthly.offPeakUsage).toBe(20);
+    expect(monthly.touCost).toBeCloseTo(8.91402, 6);
   });
 });

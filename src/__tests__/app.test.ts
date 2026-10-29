@@ -5,7 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import App from '../App';
 import { CostComparison } from '../components/CostComparison';
+import { WhatIfCalculator } from '../components/WhatIfCalculator';
+import { SeasonalComparison } from '../components/SeasonalComparison';
 import { RATE_SOURCE_URL } from '../utils/rates';
+import * as demoData from '../utils/demoData';
+import type { UsageRecord } from '../types';
 
 vi.mock('recharts', async importOriginal => {
   const charts = await importOriginal<typeof import('recharts')>();
@@ -15,11 +19,13 @@ vi.mock('recharts', async importOriginal => {
 beforeEach(() => {
   localStorage.clear();
   vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
+  vi.stubGlobal('scrollTo', vi.fn());
 });
 
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -93,5 +99,112 @@ describe('Cached analysis repricing', () => {
     expect(refreshed.records).toEqual(cachedData.records);
     expect(refreshed.metadata).toEqual(cachedData.metadata);
     expect(refreshed.weather).toEqual(cachedData.weather);
+  });
+});
+
+describe('Calculation entry points', () => {
+  const records: UsageRecord[] = ['2026-03-02', '2026-09-01', '2026-11-27'].map(date => ({
+    type: 'Electric usage', date, startTime: '08:00', endTime: '08:15', usage: 100,
+  }));
+
+  it.each(['cache', 'upload', 'demo'])('uses correct seasonal and holiday buckets for %s data', async entryPoint => {
+    if (entryPoint === 'cache') {
+      localStorage.setItem('energy-insights-data', JSON.stringify({
+        records,
+        peakUsage: 300,
+        offPeakUsage: 0,
+        winterPeakUsage: 200,
+        summerPeakUsage: 100,
+      }));
+    }
+    if (entryPoint === 'demo') {
+      vi.spyOn(demoData, 'generateDemoData').mockReturnValue({ records, metadata: {}, weather: [] });
+    }
+    const { container } = render(createElement(App));
+    if (entryPoint === 'upload') {
+      const csv = [
+        'TYPE,DATE,START TIME,END TIME,USAGE (kWh)',
+        ...records.map(record => [record.type, record.date, record.startTime, record.endTime, record.usage].join(',')),
+      ].join('\n');
+      const input = container.querySelector('input[type="file"]');
+      if (!input) throw new Error('CSV upload input not found');
+      fireEvent.change(input, { target: { files: [new File([csv], 'usage.csv', { type: 'text/csv' })] } });
+    } else if (entryPoint === 'demo') {
+      fireEvent.click(screen.getByRole('button', { name: /EV Owner, Works from Home/ }));
+    }
+
+    await screen.findByRole('heading', { name: 'Rate Plan Comparison' });
+    const whatIf = screen.getByRole('heading', { name: 'What If' }).parentElement;
+    if (!whatIf) throw new Error('What If panel not found');
+    fireEvent.click(screen.getByRole('button', { name: 'Time-of-Use' }));
+    expect(within(whatIf).getByText('$34')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'TOU + Super Off-Peak' }));
+    expect(within(whatIf).getByText(/\$42.*\$50/)).toBeTruthy();
+    fireEvent.change(within(whatIf).getByRole('slider'), { target: { value: '0' } });
+    expect(within(whatIf).getByText(/\$0.*\$0/)).toBeTruthy();
+
+    if (entryPoint !== 'demo') {
+      const stored = localStorage.getItem('energy-insights-data');
+      if (!stored) throw new Error('Rebuilt analysis was not saved');
+      expect(JSON.parse(stored)).toMatchObject({
+        records,
+        totalUsage: 300,
+        peakUsage: 200,
+        offPeakUsage: 100,
+        peakUsageByPlan: {
+          tou: { winter: 100, summer: 0 },
+          touSuper: { winter: 100, summer: 100 },
+        },
+      });
+    }
+  });
+});
+
+describe('What If estimates', () => {
+  it('shows no shift savings for Schedule 307 summer mornings, but does for Schedule 327', () => {
+    const props = {
+      peakUsageByPlan: {
+        tou: { winter: 0, summer: 0 },
+        touSuper: { winter: 0, summer: 100 },
+      },
+      flatCost: 100,
+      touCost: 100,
+      touSuperCost: 100,
+      monthCount: 12,
+    };
+    const { rerender } = render(createElement(WhatIfCalculator, { ...props, currentPlan: 'tou' }));
+    expect(screen.getAllByText('$0').length).toBeGreaterThan(0);
+    rerender(createElement(WhatIfCalculator, { ...props, currentPlan: 'touSuper' }));
+    expect(screen.getByText(/\$3.*\$4/)).toBeTruthy();
+  });
+
+  it('retains plan-switch savings at zero shift when comparing against the flat plan', () => {
+    render(createElement(WhatIfCalculator, {
+      peakUsageByPlan: {
+        tou: { winter: 100, summer: 100 },
+        touSuper: { winter: 100, summer: 100 },
+      },
+      flatCost: 200,
+      touCost: 150,
+      touSuperCost: 100,
+      monthCount: 1,
+      currentPlan: 'flat',
+    }));
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '0' } });
+    expect(screen.getByText('$600')).toBeTruthy();
+    expect(screen.getByText(/\$1200.*\$1200/)).toBeTruthy();
+  });
+});
+
+describe('Seasonal peak percentages', () => {
+  it('uses the shared Schedule 327 holiday classification', () => {
+    const records = Array.from({ length: 7 }, (_, index) => [
+      { date: `2026-03-${String(index + 2).padStart(2, '0')}`, startTime: '08:00', usage: 100 },
+      { date: `2026-09-${String(index + 1).padStart(2, '0')}`, startTime: '08:00', usage: 100 },
+    ]).flat();
+    render(createElement(SeasonalComparison, { records }));
+    expect(screen.getByText('71%')).toBeTruthy();
+    expect(screen.getByText('57%')).toBeTruthy();
+    expect(screen.getByText(/Peak usage uses Schedule 327 periods, excluding PSE holidays/)).toBeTruthy();
   });
 });

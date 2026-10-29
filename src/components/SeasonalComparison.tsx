@@ -1,4 +1,5 @@
 import type { DailyWeather } from '../utils/weather';
+import { isPeakHour, isWinterMonth } from '../utils/rates';
 
 interface SeasonalComparisonProps {
   records: { date: string; usage: number; startTime: string }[];
@@ -15,20 +16,14 @@ export function SeasonalComparison({ records, weather }: SeasonalComparisonProps
   const coldThreshold = 50; // Days below 50°F are "cold"
   const warmThreshold = 65; // Days above 65°F are "warm"
   
-  const isPeakHour = (hour: number, dayOfWeek: number) => {
-    if (dayOfWeek === 0 || dayOfWeek === 6) return false;
-    return (hour >= 7 && hour < 10) || (hour >= 17 && hour < 20);
-  };
-
   // Aggregate daily usage first
   const dailyData = new Map<string, { usage: number; peak: number; offPeak: number }>();
   
   for (const record of records) {
     const [year, month, day] = record.date.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    const dayOfWeek = date.getDay();
     const hour = parseInt(record.startTime.split(':')[0], 10);
-    const isPeak = isPeakHour(hour, dayOfWeek);
+    const isPeak = isPeakHour(date, hour, 'touSuper');
     
     if (!dailyData.has(record.date)) {
       dailyData.set(record.date, { usage: 0, peak: 0, offPeak: 0 });
@@ -66,7 +61,7 @@ export function SeasonalComparison({ records, weather }: SeasonalComparisonProps
       // Fallback to calendar-based seasons
       const month = parseInt(date.split('-')[1]);
       const jsMonth = month - 1;
-      const isWinter = jsMonth >= 9 || jsMonth <= 2;
+      const isWinter = isWinterMonth(jsMonth);
       
       if (isWinter) {
         coldUsage += data.usage;
@@ -119,6 +114,7 @@ export function SeasonalComparison({ records, weather }: SeasonalComparisonProps
           ? `Based on actual temperatures (cold: ≤${coldThreshold}°F, warm: ≥${warmThreshold}°F)`
           : 'How your usage changes by season'
         }
+        {' · Peak usage uses Schedule 327 periods, excluding PSE holidays.'}
       </p>
       
       <div className="grid grid-cols-2 gap-4">

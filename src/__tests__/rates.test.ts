@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { 
   isPeakHour, 
+  isPseHoliday,
   isWinterMonth, 
   TOU_RATE, 
   TOU_SUPER_RATE,
@@ -16,48 +17,71 @@ import {
 } from '../utils/rates';
 
 describe('isPeakHour', () => {
-  // Peak hours are Mon-Fri 7-10am and 5-8pm
-  
-  it('returns true for weekday morning peak (7am)', () => {
-    expect(isPeakHour(7, 1)).toBe(true); // Monday
-    expect(isPeakHour(7, 3)).toBe(true); // Wednesday
-    expect(isPeakHour(7, 5)).toBe(true); // Friday
-  });
-
-  it('returns true for weekday morning peak (8am, 9am)', () => {
-    expect(isPeakHour(8, 2)).toBe(true);
-    expect(isPeakHour(9, 4)).toBe(true);
-  });
-
-  it('returns false for 10am (end of morning peak)', () => {
-    expect(isPeakHour(10, 1)).toBe(false);
-  });
-
-  it('returns true for weekday evening peak (5-8pm)', () => {
-    expect(isPeakHour(17, 1)).toBe(true); // 5pm
-    expect(isPeakHour(18, 2)).toBe(true); // 6pm
-    expect(isPeakHour(19, 3)).toBe(true); // 7pm
-  });
-
-  it('returns false for 8pm (end of evening peak)', () => {
-    expect(isPeakHour(20, 1)).toBe(false);
-  });
-
-  it('returns false for weekday off-peak hours', () => {
-    expect(isPeakHour(0, 1)).toBe(false);  // midnight
-    expect(isPeakHour(6, 2)).toBe(false);  // 6am
-    expect(isPeakHour(12, 3)).toBe(false); // noon
-    expect(isPeakHour(16, 4)).toBe(false); // 4pm
-    expect(isPeakHour(21, 5)).toBe(false); // 9pm
+  it.each([5, 6, 7, 8, 9])('uses morning and evening peaks on January %i, 2026', day => {
+    const date = new Date(2026, 0, day);
+    for (let hour = 0; hour < 24; hour++) {
+      const expected = (hour >= 7 && hour < 10) || (hour >= 17 && hour < 20);
+      expect(isPeakHour(date, hour, 'tou')).toBe(expected);
+      expect(isPeakHour(date, hour, 'touSuper')).toBe(expected);
+    }
   });
 
   it('returns false for all weekend hours', () => {
-    // Saturday (6) and Sunday (0) are always off-peak
-    for (let hour = 0; hour < 24; hour++) {
-      expect(isPeakHour(hour, 0)).toBe(false); // Sunday
-      expect(isPeakHour(hour, 6)).toBe(false); // Saturday
+    for (const day of [10, 11]) {
+      for (let hour = 0; hour < 24; hour++) {
+        expect(isPeakHour(new Date(2026, 0, day), hour, 'tou')).toBe(false);
+        expect(isPeakHour(new Date(2026, 0, day), hour, 'touSuper')).toBe(false);
+      }
     }
   });
+
+  it('excludes summer mornings only for Schedule 307', () => {
+    const date = new Date(2026, 6, 6);
+    expect(isPeakHour(date, 8, 'tou')).toBe(false);
+    expect(isPeakHour(date, 8, 'touSuper')).toBe(true);
+    expect(isPeakHour(date, 18, 'tou')).toBe(true);
+    expect(isPeakHour(date, 18, 'touSuper')).toBe(true);
+  });
+});
+
+describe('PSE legal holidays', () => {
+  it.each([
+    { date: '2026-01-01', offPeak: 0.174609 },
+    { date: '2026-01-19', offPeak: 0.174609 },
+    { date: '2026-02-16', offPeak: 0.174609 },
+    { date: '2026-05-25', offPeak: 0.169576 },
+    { date: '2026-06-19', offPeak: 0.169576 },
+    { date: '2026-07-04', offPeak: 0.169576 },
+    { date: '2026-09-07', offPeak: 0.169576 },
+    { date: '2026-11-11', offPeak: 0.174609 },
+    { date: '2026-11-26', offPeak: 0.174609 },
+    { date: '2026-11-27', offPeak: 0.174609 },
+    { date: '2026-12-25', offPeak: 0.174609 },
+  ])('uses off-peak prices on $date and preserves overnight prices', ({ date, offPeak }) => {
+    const holiday = new Date(`${date}T00:00:00`);
+    expect(isPseHoliday(holiday)).toBe(true);
+    for (let hour = 0; hour < 24; hour++) {
+      expect(isPeakHour(holiday, hour, 'tou')).toBe(false);
+      expect(isPeakHour(holiday, hour, 'touSuper')).toBe(false);
+      expect(getTouRate(holiday, hour)).toBeCloseTo(0.155718, 6);
+      expect(getTouSuperRate(holiday, hour)).toBeCloseTo(hour < 7 || hour >= 23 ? 0.123063 : offPeak, 6);
+    }
+  });
+
+  it.each(['2024-01-15', '2025-02-17', '2021-05-31', '2020-09-07', '2024-11-28', '2024-11-29'])(
+    'computes movable holidays for other years: %s', date => {
+      expect(isPseHoliday(new Date(`${date}T00:00:00`))).toBe(true);
+    }
+  );
+
+  it.each(['2026-07-03', '2026-07-06', '2026-10-12', '2026-11-25', '2026-11-30', '2027-12-24'])(
+    'does not add non-tariff holidays or observed substitute dates: %s', date => {
+      const weekday = new Date(`${date}T00:00:00`);
+      expect(isPseHoliday(weekday)).toBe(false);
+      expect(isPeakHour(weekday, 18, 'tou')).toBe(true);
+      expect(isPeakHour(weekday, 18, 'touSuper')).toBe(true);
+    }
+  );
 });
 
 describe('isWinterMonth', () => {

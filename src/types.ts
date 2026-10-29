@@ -7,6 +7,13 @@ export interface UsageRecord {
   notes?: string;
 }
 
+export type TouPlan = 'tou' | 'touSuper';
+
+export type PeakUsageByPlan = Record<TouPlan, {
+  winter: number;
+  summer: number;
+}>;
+
 export interface DailyUsage {
   date: string;
   totalUsage: number;

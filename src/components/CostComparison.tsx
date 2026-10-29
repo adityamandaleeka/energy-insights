@@ -227,8 +227,8 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount, cu
 
           <div className="mt-3 text-stone-400 dark:text-stone-500 space-y-0.5">
             <p>All plans: ${BASIC_CHARGE.toFixed(2)}/mo basic charge. Rates include all per-kWh surcharges and credits, rounded to the nearest $0.001.</p>
-            <p>Peak hours: Mon–Fri 7–10am &amp; 5–8pm (Sch 307 summer: 5–8pm only)</p>
-            <p>Super off-peak: 11pm–7am daily. Weekends &amp; holidays are off-peak all day.</p>
+            <p>Peak hours: Mon–Fri, excluding PSE holidays, 7–10am &amp; 5–8pm (Sch 307 summer: 5–8pm only)</p>
+            <p>Weekends &amp; PSE holidays have no peak hours. Sch 327 super off-peak remains 11pm–7am every day.</p>
           </div>
         </div>
       </details>
