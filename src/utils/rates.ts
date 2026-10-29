@@ -1,30 +1,35 @@
-// PSE Rate Structures (Effective 1/29/2026)
-// Source: Electric Summary Sheet summ_elec_prices_2026_01_29.pdf
+// PSE Rate Structures (Effective 10/1/2026)
+// Source: Electric Summary Sheet summ_elec_prices_2026_10_01.pdf
 //
 // ============================================================
 // UPDATE RATES HERE when PSE changes them
 // ============================================================
 
-export const RATE_EFFECTIVE_DATE = '2026-01-29';
+export const RATE_EFFECTIVE_DATE = '2026-10-01';
+export const RATE_SOURCE_URL = 'https://www.pse.com/-/media/Project/PSE/Portal/Rate-documents/summ_elec_prices_2026_10_01.pdf';
 
 export const BASIC_CHARGE = 7.49; // $/month (same for all schedules)
 
-// Additional per-kWh charges applied to ALL schedules equally (Sch 95, 120, 194)
+// Additional per-kWh charges and credits applied to ALL schedules equally.
 export const ADDITIONAL_PER_KWH_CHARGES = {
-  conservationCharge: 0.007862,    // Electric Conservation Service Rider (Sch 120)
+  conservationCharge: 0.009409,    // Electric Conservation Service Rider (Sch 120)
   powerCostAdjustment: 0.038719,   // Power Cost Adj Clause & Supp Rate (Sch 95)
   energyExchangeCredit: -0.006648, // Energy Exchange Credit (Sch 194)
+  federalWindPowerCredit: -0.002378, // Federal Wind Power Credit (Sch 95A)
 };
 export const ADDITIONAL_PER_KWH =
   ADDITIONAL_PER_KWH_CHARGES.conservationCharge +
   ADDITIONAL_PER_KWH_CHARGES.powerCostAdjustment +
-  ADDITIONAL_PER_KWH_CHARGES.energyExchangeCredit;
+  ADDITIONAL_PER_KWH_CHARGES.energyExchangeCredit +
+  ADDITIONAL_PER_KWH_CHARGES.federalWindPowerCredit;
 
+// These electricity-charge totals include the summary sheet's bundled riders;
+// only ADDITIONAL_PER_KWH is added separately.
 // Schedule 7 - Standard Flat Rate
 export const FLAT_RATE = {
   tier1Limit: 600, // kWh per month
-  tier1Rate: 0.145171, // $/kWh for first 600 kWh
-  tier2Rate: 0.164588, // $/kWh above 600 kWh
+  tier1Rate: 0.150017, // $/kWh for first 600 kWh
+  tier2Rate: 0.169434, // $/kWh above 600 kWh
 };
 
 // Schedule 307 - Time-of-Use (2-tier: peak/off-peak)
@@ -36,9 +41,9 @@ export const TOU_RATE = {
     evening: { start: 17, end: 20 }, // 5pm-8pm
   },
   // Electricity charge only (additional per-kWh charges added in getter)
-  peakRateWinter: 0.538434, // Oct-Mar
-  peakRateSummer: 0.341175, // Apr-Sep
-  offPeakRate: 0.114186,
+  peakRateWinter: 0.540864, // Oct-Mar
+  peakRateSummer: 0.343605, // Apr-Sep
+  offPeakRate: 0.116616,
 };
 
 // Schedule 327 - Time-of-Use with Super Off-Peak (3-tier)
@@ -53,11 +58,11 @@ export const TOU_SUPER_RATE = {
   // Super off-peak: 11pm-7am every day
   superOffPeakHours: { start: 23, end: 7 }, // 11pm-7am
   // Electricity charge only (additional per-kWh charges added in getter)
-  peakRateWinter: 0.509564, // Oct-Mar
-  peakRateSummer: 0.277828, // Apr-Sep
-  offPeakRateWinter: 0.133077, // mid-peak / standard off-peak (Oct-Mar)
-  offPeakRateSummer: 0.128044, // mid-peak / standard off-peak (Apr-Sep)
-  superOffPeakRate: 0.081531, // 11pm-7am year-round
+  peakRateWinter: 0.511994, // Oct-Mar
+  peakRateSummer: 0.280258, // Apr-Sep
+  offPeakRateWinter: 0.135507, // mid-peak / standard off-peak (Oct-Mar)
+  offPeakRateSummer: 0.130474, // mid-peak / standard off-peak (Apr-Sep)
+  superOffPeakRate: 0.083961, // 11pm-7am year-round
 };
 
 // ============================================================

@@ -6,6 +6,13 @@ import {
   TOU_SUPER_RATE,
   FLAT_RATE,
   BASIC_CHARGE,
+  ADDITIONAL_PER_KWH,
+  ADDITIONAL_PER_KWH_CHARGES,
+  FLAT_EFFECTIVE_TIER1,
+  FLAT_EFFECTIVE_TIER2,
+  RATE_EFFECTIVE_DATE,
+  getTouRate,
+  getTouSuperRate,
 } from '../utils/rates';
 
 describe('isPeakHour', () => {
@@ -99,5 +106,52 @@ describe('Rate constants', () => {
     expect(TOU_SUPER_RATE.offPeakRateWinter).toBeLessThan(TOU_SUPER_RATE.peakRateSummer);
     expect(TOU_SUPER_RATE.offPeakRateSummer).toBeLessThan(TOU_SUPER_RATE.peakRateSummer);
     expect(TOU_SUPER_RATE.peakRateSummer).toBeLessThan(TOU_SUPER_RATE.peakRateWinter);
+  });
+});
+
+describe('October 1, 2026 published prices', () => {
+  it('includes the published charges and credits exactly once', () => {
+    expect(RATE_EFFECTIVE_DATE).toBe('2026-10-01');
+    expect(BASIC_CHARGE).toBe(7.49);
+    expect(ADDITIONAL_PER_KWH_CHARGES).toEqual({
+      conservationCharge: 0.009409,
+      powerCostAdjustment: 0.038719,
+      energyExchangeCredit: -0.006648,
+      federalWindPowerCredit: -0.002378,
+    });
+    expect(ADDITIONAL_PER_KWH).toBeCloseTo(0.039102, 6);
+  });
+
+  it('matches both published Schedule 7 totals', () => {
+    expect(FLAT_EFFECTIVE_TIER1).toBeCloseTo(0.189119, 6);
+    expect(FLAT_EFFECTIVE_TIER2).toBeCloseTo(0.208536, 6);
+  });
+
+  it.each([
+    { month: 0, hour: 6, tou: 0.155718, touSuper: 0.123063 },
+    { month: 0, hour: 7, tou: 0.579966, touSuper: 0.551096 },
+    { month: 0, hour: 10, tou: 0.155718, touSuper: 0.174609 },
+    { month: 0, hour: 17, tou: 0.579966, touSuper: 0.551096 },
+    { month: 0, hour: 20, tou: 0.155718, touSuper: 0.174609 },
+    { month: 0, hour: 23, tou: 0.155718, touSuper: 0.123063 },
+    { month: 6, hour: 6, tou: 0.155718, touSuper: 0.123063 },
+    { month: 6, hour: 7, tou: 0.155718, touSuper: 0.319360 },
+    { month: 6, hour: 10, tou: 0.155718, touSuper: 0.169576 },
+    { month: 6, hour: 17, tou: 0.382707, touSuper: 0.319360 },
+    { month: 6, hour: 20, tou: 0.155718, touSuper: 0.169576 },
+    { month: 6, hour: 23, tou: 0.155718, touSuper: 0.123063 },
+  ])('matches weekday prices for month $month at $hour:00', ({ month, hour, tou, touSuper }) => {
+    const date = new Date(2026, month, 6);
+    expect(getTouRate(date, hour)).toBeCloseTo(tou, 6);
+    expect(getTouSuperRate(date, hour)).toBeCloseTo(touSuper, 6);
+  });
+
+  it.each([
+    { date: new Date(2026, 0, 10), offPeak: 0.174609 },
+    { date: new Date(2026, 6, 11), offPeak: 0.169576 },
+  ])('matches weekend prices on $date', ({ date, offPeak }) => {
+    expect(getTouRate(date, 8)).toBeCloseTo(0.155718, 6);
+    expect(getTouSuperRate(date, 8)).toBeCloseTo(offPeak, 6);
+    expect(getTouSuperRate(date, 0)).toBeCloseTo(0.123063, 6);
   });
 });

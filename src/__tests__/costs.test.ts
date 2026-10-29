@@ -7,6 +7,8 @@ import {
   TOU_RATE,
   TOU_SUPER_RATE,
 } from '../utils/rates';
+import { calculateTotalCosts } from '../utils/parser';
+import type { UsageRecord } from '../types';
 
 describe('Flat rate cost calculation', () => {
   it('calculates tier 1 only (under 600 kWh)', () => {
@@ -88,5 +90,26 @@ describe('Cost calculation examples', () => {
     const cost = calculateFlatRateCost(1000);
     expect(cost).toBeGreaterThan(180);
     expect(cost).toBeLessThan(220);
+  });
+});
+
+describe('October 2026 bill estimates', () => {
+  it('uses the published Schedule 7 tier prices for 800 kWh', () => {
+    // PSE's $162.68 example rounds each bill line; the app rounds only the final total.
+    expect(calculateFlatRateCost(800)).toBeCloseTo(162.6686, 6);
+    expect(calculateFlatRateCost(800).toFixed(2)).toBe('162.67');
+  });
+
+  it('applies current prices, monthly tiers and basic charges across seasons', () => {
+    const records: UsageRecord[] = ['2026-01-06', '2026-07-06'].flatMap(date => [
+      { type: 'Electric usage', date, startTime: '08:00', endTime: '08:15', usage: 100 },
+      { type: 'Electric usage', date, startTime: '12:00', endTime: '12:15', usage: 200 },
+      { type: 'Electric usage', date, startTime: '23:00', endTime: '23:15', usage: 500 },
+    ]);
+
+    const costs = calculateTotalCosts(records);
+    expect(costs.flatCost).toBeCloseTo(325.3372, 6);
+    expect(costs.touCost).toBeCloseTo(306.5536, 6);
+    expect(costs.touSuperCost).toBeCloseTo(293.9256, 6);
   });
 });

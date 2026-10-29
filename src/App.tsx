@@ -20,7 +20,7 @@ import {
   calculateTotalCosts,
 } from './utils/parser';
 import type { CSVMetadata } from './utils/parser';
-import { RATE_EFFECTIVE_DATE, isWinterMonth } from './utils/rates';
+import { RATE_EFFECTIVE_DATE, RATE_SOURCE_URL, isWinterMonth } from './utils/rates';
 import { generateDemoData, DEMO_PERSONAS } from './utils/demoData';
 import type { DemoPersona } from './utils/demoData';
 import { extractZipCode, fetchWeatherData } from './utils/weather';
@@ -50,10 +50,16 @@ function loadCachedData(): AnalysisData | null {
   try {
     const cached = localStorage.getItem(STORAGE_KEY);
     if (cached) {
-      return JSON.parse(cached);
+      const data: AnalysisData = JSON.parse(cached);
+      // Reprice saved usage so a rate update cannot leave stale bill estimates.
+      return {
+        ...data,
+        monthlyStats: calculateMonthlyStats(data.records),
+        ...calculateTotalCosts(data.records),
+      };
     }
-  } catch {
-    // Ignore parse errors
+  } catch (error) {
+    console.warn('Failed to restore cached analysis:', error);
   }
   return null;
 }
@@ -466,7 +472,7 @@ function App() {
             No ads, no tracking, runs locally. If this saved you money, consider donating to a charity you like. 💚
           </p>
           <div className="pt-2 border-t border-stone-100 dark:border-stone-800 space-y-1">
-            <p>Rates from PSE Electric Summary Sheet dated {RATE_EFFECTIVE_DATE}. Actual bills may include additional fees and taxes.</p>
+            <p>Estimates apply rates effective {RATE_EFFECTIVE_DATE} to all usage, from the <a href={RATE_SOURCE_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-stone-600 dark:hover:text-stone-300">PSE Electric Summary Sheet</a>. Actual bills may include additional fees and taxes.</p>
             <p>This tool is not affiliated with, endorsed by, or connected to Puget Sound Energy in any way.</p>
           </div>
         </footer>

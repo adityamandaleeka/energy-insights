@@ -1,4 +1,14 @@
 import { useState } from 'react';
+import {
+  ADDITIONAL_PER_KWH,
+  BASIC_CHARGE,
+  FLAT_EFFECTIVE_TIER1,
+  FLAT_EFFECTIVE_TIER2,
+  FLAT_RATE,
+  RATE_EFFECTIVE_DATE,
+  TOU_RATE,
+  TOU_SUPER_RATE,
+} from '../utils/rates';
 
 export type RatePlan = 'flat' | 'tou' | 'touSuper';
 
@@ -147,7 +157,7 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount, cu
       )}
 
       <details className="text-sm">
-        <summary className="text-stone-500 dark:text-stone-400 cursor-pointer hover:text-stone-700 dark:hover:text-stone-300">Rate details (as of Jan 2026)</summary>
+        <summary className="text-stone-500 dark:text-stone-400 cursor-pointer hover:text-stone-700 dark:hover:text-stone-300">Rate details (as of {RATE_EFFECTIVE_DATE})</summary>
         <div className="mt-4 text-xs">
           <table className="w-full">
             <thead>
@@ -172,48 +182,51 @@ export function CostComparison({ flatCost, touCost, touSuperCost, monthCount, cu
                 <td className="py-2.5 pr-2 text-stone-500 dark:text-stone-400">Peak</td>
                 <td className="py-2.5 px-2 align-middle" rowSpan={3}>
                   <div className="bg-stone-50 dark:bg-stone-800 rounded-lg px-3 py-3 text-center">
-                    <div className="font-semibold text-stone-700 dark:text-stone-200">$0.185<span className="font-normal text-stone-400 dark:text-stone-500">/kWh</span></div>
-                    <div className="text-[10px] text-stone-400 dark:text-stone-500">first 600 kWh</div>
+                    <div className="font-semibold text-stone-700 dark:text-stone-200">${FLAT_EFFECTIVE_TIER1.toFixed(3)}<span className="font-normal text-stone-400 dark:text-stone-500">/kWh</span></div>
+                    <div className="text-[10px] text-stone-400 dark:text-stone-500">first {FLAT_RATE.tier1Limit} kWh</div>
                     <div className="w-6 border-t border-stone-200 dark:border-stone-700 mx-auto my-1.5" />
-                    <div className="font-semibold text-stone-700 dark:text-stone-200">$0.205<span className="font-normal text-stone-400 dark:text-stone-500">/kWh</span></div>
-                    <div className="text-[10px] text-stone-400 dark:text-stone-500">above 600 kWh</div>
+                    <div className="font-semibold text-stone-700 dark:text-stone-200">${FLAT_EFFECTIVE_TIER2.toFixed(3)}<span className="font-normal text-stone-400 dark:text-stone-500">/kWh</span></div>
+                    <div className="text-[10px] text-stone-400 dark:text-stone-500">above {FLAT_RATE.tier1Limit} kWh</div>
                     <div className="mt-2 text-[10px] text-stone-400 dark:text-stone-500 italic">Same rate all hours</div>
                   </div>
                 </td>
                 <td className="py-2.5 px-2">
                   <div className="space-y-1">
-                    <div><span className="inline-block px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-semibold">$0.58</span> <span className="text-stone-400 dark:text-stone-500">Oct–Mar</span></div>
-                    <div><span className="inline-block px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-semibold">$0.38</span> <span className="text-stone-400 dark:text-stone-500">Apr–Sep</span></div>
+                    <div><span className="inline-block px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-semibold">${(TOU_RATE.peakRateWinter + ADDITIONAL_PER_KWH).toFixed(3)}</span> <span className="text-stone-400 dark:text-stone-500">Oct–Mar</span></div>
+                    <div><span className="inline-block px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-semibold">${(TOU_RATE.peakRateSummer + ADDITIONAL_PER_KWH).toFixed(3)}</span> <span className="text-stone-400 dark:text-stone-500">Apr–Sep</span></div>
                   </div>
                 </td>
                 <td className="py-2.5 pl-2">
                   <div className="space-y-1">
-                    <div><span className="inline-block px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-semibold">$0.55</span> <span className="text-stone-400 dark:text-stone-500">Oct–Mar</span></div>
-                    <div><span className="inline-block px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-semibold">$0.32</span> <span className="text-stone-400 dark:text-stone-500">Apr–Sep</span></div>
+                    <div><span className="inline-block px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-semibold">${(TOU_SUPER_RATE.peakRateWinter + ADDITIONAL_PER_KWH).toFixed(3)}</span> <span className="text-stone-400 dark:text-stone-500">Oct–Mar</span></div>
+                    <div><span className="inline-block px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-semibold">${(TOU_SUPER_RATE.peakRateSummer + ADDITIONAL_PER_KWH).toFixed(3)}</span> <span className="text-stone-400 dark:text-stone-500">Apr–Sep</span></div>
                   </div>
                 </td>
               </tr>
               <tr className="border-b border-stone-100 dark:border-stone-800">
                 <td className="py-2.5 pr-2 text-stone-500 dark:text-stone-400">Off-peak</td>
                 <td className="py-2.5 px-2">
-                  <span className="inline-block px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-semibold">$0.15</span>
+                  <span className="inline-block px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-semibold">${(TOU_RATE.offPeakRate + ADDITIONAL_PER_KWH).toFixed(3)}</span>
                 </td>
                 <td className="py-2.5 pl-2">
-                  <span className="inline-block px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-semibold">$0.17</span>
+                  <div className="space-y-1">
+                    <div><span className="inline-block px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-semibold">${(TOU_SUPER_RATE.offPeakRateWinter + ADDITIONAL_PER_KWH).toFixed(3)}</span> <span className="text-stone-400 dark:text-stone-500">Oct–Mar</span></div>
+                    <div><span className="inline-block px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-semibold">${(TOU_SUPER_RATE.offPeakRateSummer + ADDITIONAL_PER_KWH).toFixed(3)}</span> <span className="text-stone-400 dark:text-stone-500">Apr–Sep</span></div>
+                  </div>
                 </td>
               </tr>
               <tr>
                 <td className="py-2.5 pr-2 text-stone-500 dark:text-stone-400">Super off-peak</td>
                 <td className="py-2.5 px-2 text-stone-300 dark:text-stone-600">—</td>
                 <td className="py-2.5 pl-2">
-                  <span className="inline-block px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 font-semibold">$0.12</span>
+                  <span className="inline-block px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 font-semibold">${(TOU_SUPER_RATE.superOffPeakRate + ADDITIONAL_PER_KWH).toFixed(3)}</span>
                 </td>
               </tr>
             </tbody>
           </table>
 
           <div className="mt-3 text-stone-400 dark:text-stone-500 space-y-0.5">
-            <p>All plans: $7.49/mo basic charge. Rates include all per-kWh surcharges.</p>
+            <p>All plans: ${BASIC_CHARGE.toFixed(2)}/mo basic charge. Rates include all per-kWh surcharges and credits, rounded to the nearest $0.001.</p>
             <p>Peak hours: Mon–Fri 7–10am &amp; 5–8pm (Sch 307 summer: 5–8pm only)</p>
             <p>Super off-peak: 11pm–7am daily. Weekends &amp; holidays are off-peak all day.</p>
           </div>
